@@ -53,8 +53,12 @@ node --env-file=.env.local scripts/create-admin.mjs <email> <password> "<name>"
   - Data comes from the database functions `creator_daily`, `campaign_stats(range)`, `keyword_stats` and `link_stats`.
   - Change vs the previous period compares against an equally long period just before the selected one.
   - Purchases show "—" until a checkout integration exists.
+- **Settings, notifications and support are live:**
+  - Settings covers name, login email, password change (re-checks the current password), email preferences, and account deletion (deletes the auth user; all data cascades).
+  - Notifications are created only server-side through `notify()`: a welcome message on sign-up, and an alert when support replies.
+  - Support tickets are created with `create_support_ticket()`. A trigger sets the ticket to "waiting" on a support reply and back to "open" on a creator reply.
 - **Image uploads:** disabled until R2 is connected.
-- **Still mock data:** Instagram, billing, notifications, support, settings, and the admin portal.
+- **Still mock data:** the Instagram and billing pages, and the admin portal.
 
 ## Wiring the backend later
 

@@ -8,7 +8,6 @@ import {
   LogOut, Megaphone, Menu, Receipt, Server, Settings, ShieldCheck, Store, Users, Wallet, X, Zap,
 } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
-import { notifications } from "@/lib/mock-data";
 import { Avatar, Badge, cn } from "./ui";
 import { ToastProvider } from "./interactive";
 
@@ -17,9 +16,10 @@ export type ShellUser = {
   subtitle: string;
   storefrontPath?: string;
   trialDaysLeft?: number | null;
+  unreadCount?: number;
 };
 
-type NavItem = { href: string; label: string; icon: typeof Zap; badge?: string };
+type NavItem = { href: string; label: string; icon: typeof Zap };
 
 const creatorNav: { title?: string; items: NavItem[] }[] = [
   {
@@ -35,7 +35,7 @@ const creatorNav: { title?: string; items: NavItem[] }[] = [
     items: [
       { href: "/instagram", label: "Instagram", icon: Instagram },
       { href: "/billing", label: "Subscription", icon: CreditCard },
-      { href: "/notifications", label: "Notifications", icon: Bell, badge: String(notifications.filter((n) => !n.read).length) },
+      { href: "/notifications", label: "Notifications", icon: Bell },
       { href: "/support", label: "Support", icon: LifeBuoy },
       { href: "/settings", label: "Settings", icon: Settings },
     ],
@@ -114,8 +114,8 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
                     >
                       <item.icon className="h-4 w-4" />
                       {item.label}
-                      {item.badge && item.badge !== "0" && (
-                        <span className="ml-auto rounded-full bg-violet-600 px-1.5 text-[10px] font-semibold text-white">{item.badge}</span>
+                      {item.href === "/notifications" && !!user.unreadCount && (
+                        <span className="ml-auto rounded-full bg-violet-600 px-1.5 text-[10px] font-semibold text-white">{user.unreadCount > 99 ? "99+" : user.unreadCount}</span>
                       )}
                     </Link>
                   </li>

@@ -383,6 +383,7 @@ export type Database = {
           link: string | null
           read_at: string | null
           title: string
+          tone: string
           type: string
         }
         Insert: {
@@ -393,6 +394,7 @@ export type Database = {
           link?: string | null
           read_at?: string | null
           title: string
+          tone?: string
           type: string
         }
         Update: {
@@ -403,6 +405,7 @@ export type Database = {
           link?: string | null
           read_at?: string | null
           title?: string
+          tone?: string
           type?: string
         }
         Relationships: [
@@ -475,6 +478,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           email: string
+          email_prefs: Json
           full_name: string
           id: string
           onboarding_completed: boolean
@@ -490,6 +494,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email: string
+          email_prefs?: Json
           full_name?: string
           id: string
           onboarding_completed?: boolean
@@ -505,6 +510,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email?: string
+          email_prefs?: Json
           full_name?: string
           id?: string
           onboarding_completed?: boolean
@@ -780,6 +786,10 @@ export type Database = {
           visits: number
         }[]
       }
+      create_support_ticket: {
+        Args: { p_body: string; p_category: string; p_subject: string }
+        Returns: string
+      }
       creator_daily: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -817,6 +827,17 @@ export type Database = {
           link_slot: number
           unique_clicks: number
         }[]
+      }
+      notify: {
+        Args: {
+          p_body: string
+          p_creator: string
+          p_link?: string
+          p_title: string
+          p_tone: string
+          p_type: string
+        }
+        Returns: undefined
       }
       save_storefront: {
         Args: { p_default: Json; p_links: Json; p_profile: Json }

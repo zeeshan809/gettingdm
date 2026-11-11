@@ -121,7 +121,10 @@ function MetaBadge({ meta }: { meta: [string, BadgeTone] }) {
 export const AutomationBadge = ({ status }: { status: AutomationStatus }) => <MetaBadge meta={automationMeta[status]} />;
 export const ConnectionBadge = ({ status }: { status: ConnectionStatus }) => <MetaBadge meta={connectionMeta[status]} />;
 export const SubscriptionBadge = ({ status }: { status: SubscriptionStatus }) => <MetaBadge meta={subscriptionMeta[status]} />;
-export const TicketBadge = ({ status }: { status: TicketStatus }) => <MetaBadge meta={ticketMeta[status]} />;
+// Creators see "waiting" from their side of the conversation.
+export const TicketBadge = ({ status, creatorView }: { status: TicketStatus; creatorView?: boolean }) => (
+  <MetaBadge meta={creatorView && status === "waiting" ? ["Awaiting your reply", "yellow"] : ticketMeta[status]} />
+);
 
 export function StatCard({ label, value, hint, delta, icon }: { label: string; value: ReactNode; hint?: string; delta?: number; icon?: ReactNode }) {
   return (

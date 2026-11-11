@@ -15,6 +15,7 @@ export default function LoginPage() {
     const code = new URLSearchParams(window.location.search).get("error");
     if (code === "link") setError("That link is invalid or has expired. Please try again.");
     if (code === "account") setError("Your session has ended. Please log in again.");
+    if (code === "deleted") setError("Your account has been deleted.");
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
