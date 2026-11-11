@@ -95,7 +95,7 @@ export default function OnboardingPage() {
               // eslint-disable-next-line @next/next/no-html-link-for-pages -- redirects off-site to Meta
               <a href="/api/instagram/connect?next=/onboarding" className={buttonClass("primary", "md", "mt-5")}>Continue with Meta</a>
             )}
-            <p className="mt-4 text-xs text-zinc-400">Requires an Instagram Business or Creator account linked to a Facebook Page.</p>
+            <p className="mt-4 text-xs text-zinc-400">Requires an Instagram Business or Creator account. You can log in with Instagram or Facebook.</p>
           </div>
         )}
 

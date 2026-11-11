@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentCreator } from "@/lib/auth";
 import { OAUTH_COOKIE, RETURN_PATHS } from "@/lib/instagram-oauth";
-import { exchangeCode, linkedInstagramAccounts, metaConfig, MetaError, subscribePage } from "@/lib/meta";
+import { assignedInstagramAccounts, exchangeCode, metaConfig, MetaError, subscribeInstagram } from "@/lib/meta";
 import { createServiceClient } from "@/lib/supabase/server";
 import { encryptToken } from "@/lib/token-crypto";
 
@@ -29,9 +29,9 @@ export async function GET(request: NextRequest) {
   const redirectUri = new URL("/api/instagram/callback", request.url).toString();
 
   try {
-    const userToken = await exchangeCode(code, redirectUri);
-    const accounts = await linkedInstagramAccounts(userToken);
-    // Multiple Pages: use the first with an Instagram account; the creator picks which Pages to share in Meta's dialog.
+    const token = await exchangeCode(code, redirectUri);
+    const accounts = await assignedInstagramAccounts(token);
+    // The configuration requires an Instagram account; if several were shared, use the first.
     const ig = accounts[0];
     if (!ig) return finish("error=no_instagram");
 
@@ -41,10 +41,10 @@ export async function GET(request: NextRequest) {
 
     let lastError: string | null = null;
     try {
-      await subscribePage(ig.pageId, ig.pageToken);
+      await subscribeInstagram(ig.igUserId, token);
     } catch (e) {
-      lastError = `Webhook subscription failed: ${(e as Error).message}`;
-      console.error("subscribePage failed", e);
+      lastError = `Comment notifications not enabled: ${(e as Error).message}`;
+      console.error("subscribeInstagram failed", e);
     }
 
     const { error: accErr } = await svc.from("instagram_accounts").upsert({
@@ -52,19 +52,20 @@ export async function GET(request: NextRequest) {
       ig_user_id: ig.igUserId,
       username: ig.username,
       profile_picture_url: ig.profilePictureUrl,
-      account_type: "business",
+      account_type: "professional",
       status: "connected",
       token_expires_at: null,
       connected_at: new Date().toISOString(),
       last_error: lastError,
-      fb_user_id: ig.fbUserId,
-      page_id: ig.pageId,
-      page_name: ig.pageName,
+      fb_user_id: ig.systemUserId,
+      business_id: ig.businessId,
+      page_id: null,
+      page_name: null,
     }, { onConflict: "creator_id" });
     if (accErr) throw accErr;
 
     const { error: tokErr } = await svc.from("instagram_tokens").upsert(
-      { creator_id: creator.id, access_token_encrypted: encryptToken(ig.pageToken) },
+      { creator_id: creator.id, access_token_encrypted: encryptToken(token) },
       { onConflict: "creator_id" },
     );
     if (tokErr) throw tokErr;

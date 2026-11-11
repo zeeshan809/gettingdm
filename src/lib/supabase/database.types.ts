@@ -342,6 +342,7 @@ export type Database = {
       instagram_accounts: {
         Row: {
           account_type: string | null
+          business_id: string | null
           connected_at: string
           creator_id: string
           fb_user_id: string | null
@@ -357,6 +358,7 @@ export type Database = {
         }
         Insert: {
           account_type?: string | null
+          business_id?: string | null
           connected_at?: string
           creator_id: string
           fb_user_id?: string | null
@@ -372,6 +374,7 @@ export type Database = {
         }
         Update: {
           account_type?: string | null
+          business_id?: string | null
           connected_at?: string
           creator_id?: string
           fb_user_id?: string | null

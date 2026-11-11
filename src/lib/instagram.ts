@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient, createServiceClient } from "./supabase/server";
 import { decryptToken } from "./token-crypto";
-import { MetaError, recentMedia, unsubscribePage } from "./meta";
+import { MetaError, recentMedia, unsubscribeInstagram } from "./meta";
 import type { InstagramMedia } from "./campaigns";
 
 // Placeholder posts so campaigns can be built and tested locally before
@@ -20,14 +20,14 @@ export const getInstagramAccount = cache(async (creatorId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("instagram_accounts")
-    .select("ig_user_id, username, profile_picture_url, status, connected_at, last_error, page_id, page_name")
+    .select("ig_user_id, username, profile_picture_url, status, connected_at, last_error")
     .eq("creator_id", creatorId)
     .maybeSingle();
   return data;
 });
 
-// Server-only: decrypted Page token for Graph calls.
-async function pageToken(creatorId: string) {
+// Server-only: decrypted access token for Graph calls.
+async function accessToken(creatorId: string) {
   const { data } = await createServiceClient().from("instagram_tokens").select("access_token_encrypted").eq("creator_id", creatorId).maybeSingle();
   return data ? decryptToken(data.access_token_encrypted) : null;
 }
@@ -45,7 +45,7 @@ export async function getInstagramMedia(creatorId: string) {
 
   if (connected) {
     try {
-      const token = await pageToken(creatorId);
+      const token = await accessToken(creatorId);
       if (!token) throw new MetaError("No access token stored", 190);
       const media = await recentMedia(account.ig_user_id, token);
       return {
@@ -74,14 +74,14 @@ export async function getInstagramMedia(creatorId: string) {
 // Removes the connection and token; campaigns and storefront are kept.
 export async function disconnectInstagram(creatorId: string) {
   const svc = createServiceClient();
-  const { data: account } = await svc.from("instagram_accounts").select("page_id").eq("creator_id", creatorId).maybeSingle();
+  const { data: account } = await svc.from("instagram_accounts").select("ig_user_id").eq("creator_id", creatorId).maybeSingle();
   if (!account) return;
   try {
-    const token = await pageToken(creatorId);
-    if (token && account.page_id) await unsubscribePage(account.page_id, token);
+    const token = await accessToken(creatorId);
+    if (token) await unsubscribeInstagram(account.ig_user_id, token);
   } catch (e) {
     // Best effort: the token may already be revoked.
-    console.error("unsubscribePage failed", e);
+    console.error("unsubscribeInstagram failed", e);
   }
   await svc.from("instagram_accounts").delete().eq("creator_id", creatorId);
 }

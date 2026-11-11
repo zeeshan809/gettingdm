@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <li>Campaign settings: chosen posts, keywords, message text and links.</li>
         <li>
           Instagram data received through Meta&apos;s official API after you connect your account: your Instagram account ID,
-          username, profile picture, the connected Facebook Page, a list of your recent posts and Reels (ID, caption, type,
+          username, profile picture, the Meta business portfolio you choose, a list of your recent posts and Reels (ID, caption, type,
           thumbnail, link and date), and an access token that lets us act on your behalf. We never see or store your Instagram
           or Facebook password.
         </li>

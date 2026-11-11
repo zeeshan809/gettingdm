@@ -52,8 +52,8 @@ export default async function DataDeletionPage({ searchParams }: Props) {
       <ol>
         <li>Open <strong>Instagram</strong> in the {APP_NAME} dashboard and click <strong>Disconnect</strong>, or</li>
         <li>
-          In Facebook, go to <strong>Settings &amp; privacy → Settings → Business integrations</strong> (or in Instagram,
-          <strong> Settings → Website permissions → Apps and websites</strong>) and remove {APP_NAME}.
+          In Instagram, go to <strong>Settings → Website permissions → Apps and websites</strong> (or in Facebook,
+          <strong> Settings &amp; privacy → Settings → Business integrations</strong>) and remove {APP_NAME}.
         </li>
       </ol>
       <p>

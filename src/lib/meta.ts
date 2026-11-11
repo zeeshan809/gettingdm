@@ -1,8 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// Meta Graph API for Facebook Login for Business (Unified login) with an
-// Instagram professional account linked to a Facebook Page.
+// Meta Graph API for "Instagram API with Unified Login": Facebook Login for
+// Business with a system-user configuration. Creators log in with Instagram or
+// Facebook; no Facebook Page is needed. The login returns a Business
+// Integration System User token owned by the creator's business portfolio.
 
 export const GRAPH_VERSION = "v27.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
@@ -55,58 +57,48 @@ export function authorizeUrl(redirectUri: string, state: string) {
   return `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${qs}`;
 }
 
-// Login code → short-lived user token → long-lived (~60 day) user token.
-// Page tokens fetched with a long-lived user token don't expire.
+// Login code → Business Integration System User token (its lifetime is set
+// by the login configuration; ours never expires).
 export async function exchangeCode(code: string, redirectUri: string) {
   const cfg = metaConfig()!;
-  const short = await graph<{ access_token: string }>("/oauth/access_token", {
+  const res = await graph<{ access_token: string }>("/oauth/access_token", {
     client_id: cfg.appId, client_secret: cfg.appSecret, redirect_uri: redirectUri, code,
   });
-  const long = await graph<{ access_token: string; expires_in?: number }>("/oauth/access_token", {
-    grant_type: "fb_exchange_token", client_id: cfg.appId, client_secret: cfg.appSecret, fb_exchange_token: short.access_token,
-  });
-  return long.access_token;
+  return res.access_token;
 }
 
-export type LinkedInstagram = {
-  fbUserId: string;
-  pageId: string;
-  pageName: string;
-  pageToken: string;
+export type ConnectedInstagram = {
+  systemUserId: string;
+  businessId: string | null;
   igUserId: string;
   username: string;
   profilePictureUrl: string | null;
 };
 
-// Pages the person granted, keeping only those with a linked Instagram professional account.
-export async function linkedInstagramAccounts(userToken: string): Promise<LinkedInstagram[]> {
-  const me = await graph<{ id: string }>("/me", { fields: "id", access_token: userToken });
-  const pages = await graph<{
-    data: { id: string; name: string; access_token: string; instagram_business_account?: { id: string; username?: string; profile_picture_url?: string } }[];
-  }>("/me/accounts", {
-    fields: "id,name,access_token,instagram_business_account{id,username,profile_picture_url}",
-    access_token: userToken,
-  });
-  return pages.data
-    .filter((p) => p.instagram_business_account)
-    .map((p) => ({
-      fbUserId: me.id,
-      pageId: p.id,
-      pageName: p.name,
-      pageToken: p.access_token,
-      igUserId: p.instagram_business_account!.id,
-      username: p.instagram_business_account!.username ?? "",
-      profilePictureUrl: p.instagram_business_account!.profile_picture_url ?? null,
-    }));
+// Instagram accounts the creator shared during login. /me is the system user,
+// not the Instagram account.
+export async function assignedInstagramAccounts(token: string): Promise<ConnectedInstagram[]> {
+  const me = await graph<{ id: string; client_business_id?: string }>("/me", { fields: "id,client_business_id", access_token: token });
+  const accounts = await graph<{ data: { id: string; username?: string; profile_picture_url?: string }[] }>(
+    "/me/assigned_instagram_accounts",
+    { fields: "id,username,profile_picture_url", access_token: token },
+  );
+  return accounts.data.map((a) => ({
+    systemUserId: me.id,
+    businessId: me.client_business_id ?? null,
+    igUserId: a.id,
+    username: a.username ?? "",
+    profilePictureUrl: a.profile_picture_url ?? null,
+  }));
 }
 
-// Instagram webhooks for a Page-linked account only arrive once the app is subscribed to the Page.
-export async function subscribePage(pageId: string, pageToken: string) {
-  await graph(`/${pageId}/subscribed_apps`, { subscribed_fields: "feed", access_token: pageToken }, { method: "POST" });
+// Comment webhooks for a connected account only arrive once it's subscribed.
+export async function subscribeInstagram(igUserId: string, token: string) {
+  await graph(`/${igUserId}/subscribed_apps`, { subscribed_fields: "comments", access_token: token }, { method: "POST" });
 }
 
-export async function unsubscribePage(pageId: string, pageToken: string) {
-  await graph(`/${pageId}/subscribed_apps`, { access_token: pageToken }, { method: "DELETE" });
+export async function unsubscribeInstagram(igUserId: string, token: string) {
+  await graph(`/${igUserId}/subscribed_apps`, { access_token: token }, { method: "DELETE" });
 }
 
 export type GraphMedia = {
@@ -120,11 +112,11 @@ export type GraphMedia = {
   timestamp: string;
 };
 
-export async function recentMedia(igUserId: string, pageToken: string, limit = 24) {
+export async function recentMedia(igUserId: string, token: string, limit = 24) {
   const res = await graph<{ data: GraphMedia[] }>(`/${igUserId}/media`, {
     fields: "id,caption,media_type,media_product_type,thumbnail_url,media_url,permalink,timestamp",
     limit: String(limit),
-    access_token: pageToken,
+    access_token: token,
   });
   return res.data;
 }
