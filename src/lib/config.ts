@@ -1,6 +1,6 @@
-// Placeholder product name — change here and it updates everywhere.
-export const APP_NAME = "LinkLoop";
-export const APP_DOMAIN = "linkloop.in";
+// Product name and domain — change here and it updates everywhere.
+export const APP_NAME = "GettingDM";
+export const APP_DOMAIN = "gettingdm.in";
 
 export const TRIAL_DAYS = 30;
 

@@ -1,4 +1,4 @@
-# LinkLoop — frontend
+# GettingDM
 
 UI for the Instagram comment-to-DM automation and creator storefront platform. **Frontend only** — all data comes from `src/lib/mock-data.ts`; no backend, auth or API calls yet.
 
