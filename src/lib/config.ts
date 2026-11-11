@@ -1,6 +1,6 @@
 // Product name and domain — change here and it updates everywhere.
 export const APP_NAME = "GettingDM";
-export const APP_DOMAIN = "gettingdm.in";
+export const APP_DOMAIN = "gettingdm.store";
 
 export const TRIAL_DAYS = 30;
 
