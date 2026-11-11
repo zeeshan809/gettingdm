@@ -102,8 +102,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>© 2026 {APP_NAME}</p>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-zinc-800">Privacy</a>
-            <a href="#" className="hover:text-zinc-800">Terms</a>
+            <Link href="/privacy" className="hover:text-zinc-800">Privacy</Link>
+            <Link href="/terms" className="hover:text-zinc-800">Terms</Link>
+            <Link href="/data-deletion" className="hover:text-zinc-800">Data deletion</Link>
             <Link href="/admin/login" className="hover:text-zinc-800">Admin</Link>
           </div>
         </div>

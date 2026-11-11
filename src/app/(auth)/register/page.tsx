@@ -101,8 +101,8 @@ export default function RegisterPage() {
         <label className="flex items-start gap-2 text-xs text-zinc-500">
           <input type="checkbox" required className="mt-0.5 accent-violet-600" />
           <span>
-            I agree to the <a href="#" className="text-violet-700 underline">Terms of Service</a> and{" "}
-            <a href="#" className="text-violet-700 underline">Privacy Policy</a>.
+            I agree to the <a href="/terms" target="_blank" className="text-violet-700 underline">Terms of Service</a> and{" "}
+            <a href="/privacy" target="_blank" className="text-violet-700 underline">Privacy Policy</a>.
           </span>
         </label>
         <Button type="submit" className="w-full" disabled={!valid || taken || busy}>{busy ? "Creating account…" : "Create account"}</Button>

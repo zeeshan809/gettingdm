@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Instagram, Link2, Zap } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
-import { Button, Card, cn, Field, FormError, Input, LinkButton } from "@/components/ui";
+import { Button, buttonClass, Callout, Card, cn, Field, FormError, Input, LinkButton } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
 const steps = [
@@ -15,7 +15,19 @@ const steps = [
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
-  const [connected, setConnected] = useState(false);
+  const [handle, setHandle] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState("");
+
+  // Coming back from Meta: show the real connected account (or why it failed).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error")) {
+      setConnectError(params.get("error") === "cancelled" ? "Connection cancelled. You can try again or skip this step." : "We couldn't connect Instagram. You can try again from the Instagram page later.");
+    }
+    createClient().from("instagram_accounts").select("username, status").maybeSingle().then(({ data }) => {
+      if (data?.status === "connected") setHandle(data.username);
+    });
+  }, []);
   const [links, setLinks] = useState(
     ["My Website", "Join My Community", "Explore My Courses"].map((title) => ({ title, url: "" })),
   );
@@ -74,12 +86,14 @@ export default function OnboardingPage() {
             <p className="mx-auto mt-1 max-w-md text-sm text-zinc-500">
               You&apos;ll be sent to Meta to approve access. We never ask for or store your Instagram password.
             </p>
-            {connected ? (
+            {connectError && <div className="mt-4 text-left"><Callout tone="yellow" title="Not connected">{connectError}</Callout></div>}
+            {handle ? (
               <p className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                <Check className="h-4 w-4" /> Connected as @zeeshan.codes
+                <Check className="h-4 w-4" /> Connected as @{handle}
               </p>
             ) : (
-              <Button className="mt-5" onClick={() => setConnected(true)}>Continue with Meta</Button>
+              // eslint-disable-next-line @next/next/no-html-link-for-pages -- redirects off-site to Meta
+              <a href="/api/instagram/connect?next=/onboarding" className={buttonClass("primary", "md", "mt-5")}>Continue with Meta</a>
             )}
             <p className="mt-4 text-xs text-zinc-400">Requires an Instagram Business or Creator account linked to a Facebook Page.</p>
           </div>
@@ -119,7 +133,7 @@ export default function OnboardingPage() {
       {step < 2 && (
         <div className="mt-4 flex justify-between">
           <Link href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-800">Skip for now</Link>
-          <Button onClick={next} disabled={(step === 0 && !connected) || busy}>{busy ? "Saving…" : "Continue"}</Button>
+          <Button onClick={next} variant={step === 0 && !handle ? "secondary" : "primary"} disabled={busy}>{busy ? "Saving…" : step === 0 && !handle ? "Connect later" : "Continue"}</Button>
         </div>
       )}
     </div>

@@ -254,6 +254,44 @@ export type Database = {
           },
         ]
       }
+      data_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          confirmation_code: string
+          creator_id: string | null
+          fb_user_id: string
+          id: string
+          requested_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmation_code: string
+          creator_id?: string | null
+          fb_user_id: string
+          id?: string
+          requested_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          confirmation_code?: string
+          creator_id?: string | null
+          fb_user_id?: string
+          id?: string
+          requested_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_deletion_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_links: {
         Row: {
           active: boolean
@@ -306,8 +344,11 @@ export type Database = {
           account_type: string | null
           connected_at: string
           creator_id: string
+          fb_user_id: string | null
           ig_user_id: string
           last_error: string | null
+          page_id: string | null
+          page_name: string | null
           profile_picture_url: string | null
           status: Database["public"]["Enums"]["connection_status"]
           token_expires_at: string | null
@@ -318,8 +359,11 @@ export type Database = {
           account_type?: string | null
           connected_at?: string
           creator_id: string
+          fb_user_id?: string | null
           ig_user_id: string
           last_error?: string | null
+          page_id?: string | null
+          page_name?: string | null
           profile_picture_url?: string | null
           status?: Database["public"]["Enums"]["connection_status"]
           token_expires_at?: string | null
@@ -330,8 +374,11 @@ export type Database = {
           account_type?: string | null
           connected_at?: string
           creator_id?: string
+          fb_user_id?: string | null
           ig_user_id?: string
           last_error?: string | null
+          page_id?: string | null
+          page_name?: string | null
           profile_picture_url?: string | null
           status?: Database["public"]["Enums"]["connection_status"]
           token_expires_at?: string | null

@@ -1,6 +1,9 @@
 // Product name and domain — change here and it updates everywhere.
 export const APP_NAME = "GettingDM";
 export const APP_DOMAIN = "gettingdm.store";
+// Shown on the privacy, terms and data-deletion pages.
+export const SUPPORT_EMAIL = "support@gettingdm.store";
+export const LEGAL_UPDATED = "12 November 2026";
 
 export const TRIAL_DAYS = 30;
 
@@ -54,5 +57,5 @@ export const RESERVED_USERNAMES = [
   "admin", "login", "register", "forgot-password", "reset-password", "verify-email", "onboarding", "dashboard",
   "campaigns", "storefront", "analytics", "instagram", "billing", "support",
   "settings", "notifications", "api", "pricing", "auth", "www", "app", "help", "about",
-  "terms", "privacy", "static", "assets",
+  "terms", "privacy", "data-deletion", "static", "assets",
 ];
