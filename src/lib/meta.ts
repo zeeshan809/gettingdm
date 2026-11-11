@@ -44,17 +44,22 @@ async function graph<T>(path: string, params: Record<string, string>, init?: { m
   return body as T;
 }
 
+// Mirrors the Login URL Meta generates for an "Instagram Login Compatible"
+// configuration. prompt=login shows the Instagram/Facebook login choice
+// instead of silently reusing whichever Facebook account is signed in.
 export function authorizeUrl(redirectUri: string, state: string) {
   const cfg = metaConfig()!;
   const qs = new URLSearchParams({
     client_id: cfg.appId,
-    redirect_uri: redirectUri,
     config_id: cfg.configId,
-    response_type: "code",
+    display: "popup",
     override_default_response_type: "true",
+    redirect_uri: redirectUri,
+    response_type: "code",
     state,
+    prompt: "login",
   });
-  return `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${qs}`;
+  return `https://www.facebook.com/dialog/oauth?${qs}`;
 }
 
 // Login code → Business Integration System User token (its lifetime is set
