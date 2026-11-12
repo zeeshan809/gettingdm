@@ -329,7 +329,7 @@ export const allCreators: Creator[] = [
       joinedAt: joined,
       campaignsCount: Math.floor(r() * 12),
       dmsSent: Math.floor(r() * 9000),
-      mrr: sub === "active" ? (plan === "creator_plus" ? 399 : 99) : 0,
+      mrr: sub === "active" ? (plan === "creator_plus" ? 299 : 99) : 0,
     };
   }),
 ];
@@ -360,7 +360,7 @@ export const adminKpis = {
     // 393 Creator + 78 Creator Plus = 471 paying, so revenue figures stay consistent.
     const byPlan = [
       { plan: "Creator", subscribers: 393, mrr: 393 * 99 },
-      { plan: "Creator Plus", subscribers: 78, mrr: 78 * 399 },
+      { plan: "Creator Plus", subscribers: 78, mrr: 78 * 299 },
     ];
     const mrr = byPlan[0].mrr + byPlan[1].mrr;
     return { mrr, arr: mrr * 12, totalRevenue: 162_640, failedPayments: 37, refunds: 6, churn: 4.2, arpu: Math.round((mrr / 471) * 10) / 10, byPlan };
@@ -399,7 +399,7 @@ export const adminPayments = Array.from({ length: 36 }, (_, i) => {
     razorpayId: `pay_R${(9_000_000 + i * 104_729).toString(36).toUpperCase()}`,
     creator: c.username,
     plan: plus ? "Creator Plus" : "Creator",
-    amount: plus ? 399 : 99,
+    amount: plus ? 299 : 99,
     status: status as "success" | "failed" | "pending" | "refunded",
     kind: r() > 0.3 ? "Renewal" : "New subscription",
     date: isoDaysAgo(Math.floor(i * 1.6)),

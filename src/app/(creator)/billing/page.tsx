@@ -63,11 +63,10 @@ export default function BillingPage() {
               </div>
               <p className="mt-2"><span className="text-3xl font-semibold">₹{p.price}</span><span className="text-sm text-zinc-500">/month</span></p>
               <ul className="mt-4 space-y-2 text-sm">
-                {p.features.filter((f) => !f.soon && f.value !== "Included").map((f) => (
-                  <li key={f.label} className="flex gap-2"><Check className="h-4 w-4 text-violet-600" />{f.label}: <span className="font-medium">{f.value}</span></li>
+                {p.features.filter((f) => !f.soon).map((f) => (
+                  <li key={f.label} className="flex gap-2"><Check className="h-4 w-4 shrink-0 text-violet-600" /><span>{f.label}{f.value !== "Included" && <span className="text-zinc-500"> · {f.value}</span>}</span></li>
                 ))}
-                <li className="flex gap-2"><Check className="h-4 w-4 text-violet-600" />Automation, storefront and analytics</li>
-                <li className="flex gap-2 text-zinc-500"><Check className="h-4 w-4 text-zinc-300" />Coming soon: {p.features.filter((f) => f.soon).map((f) => f.label).join(", ")}</li>
+                <li className="flex gap-2 text-zinc-500"><Check className="h-4 w-4 shrink-0 text-zinc-300" />Coming soon: {p.features.filter((f) => f.soon).map((f) => f.label).join(", ")}</li>
               </ul>
               <Button className="mt-5 w-full" variant={featured ? "primary" : "secondary"} onClick={() => setCheckout(p.id)}>Subscribe to {p.name}</Button>
             </Card>

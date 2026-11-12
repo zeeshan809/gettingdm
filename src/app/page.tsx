@@ -3,8 +3,9 @@ import {
   ArrowRight, BarChart3, Check, ChevronDown, Dumbbell, GraduationCap, Link2, Lock, MessageCircle,
   MousePointerClick, Plug, Rocket, Send, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, Zap,
 } from "lucide-react";
-import { APP_DOMAIN, APP_NAME, PLANS, TRIAL_DAYS } from "@/lib/config";
+import { APP_DOMAIN, APP_NAME, PLANS, SUPPORT_EMAIL, TRIAL_DAYS } from "@/lib/config";
 import { Logo } from "@/components/logo";
+import { LandingMenu } from "@/components/landing-menu";
 
 const primaryCta =
   "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-violet-600 px-6 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700";
@@ -19,8 +20,8 @@ const niches = [
 const featureGrid = [
   { icon: Tag, title: "Keyword triggers", body: "Pick the word your audience comments. Anyone who types it gets your DM." },
   { icon: MessageCircle, title: "Reels and posts", body: "Run a campaign on any Reel or post, and keep each one separate." },
-  { icon: Store, title: "Creator storefront", body: "One clean page with your profile, socials and every link you share." },
-  { icon: Link2, title: "Campaign link", body: "A fourth link that changes per Reel, so each audience lands on the right offer." },
+  { icon: Store, title: "Creator storefront", body: "One clean page with your profile, socials and every link you share.", plus: true },
+  { icon: Link2, title: "Campaign link", body: "A fourth link that changes per Reel, so each audience lands on the right offer.", plus: true },
   { icon: BarChart3, title: "Funnel analytics", body: "Comments, DMs, visits and clicks by day, by campaign and by link." },
   { icon: ShieldCheck, title: "Official Meta login", body: "Connect with Meta's own login. We never see or store your password." },
 ];
@@ -50,16 +51,29 @@ const faqs = [
   { q: "Do I have to share my Instagram password?", a: "No. You connect through Meta's own login screen. We never see or store your password." },
   { q: "What kind of Instagram account do I need?", a: "A Professional account (Creator or Business). Switching is free and takes a minute in the Instagram app." },
   { q: "Is there a free trial?", a: `Yes. Every plan starts with a ${TRIAL_DAYS}-day free trial, and you can cancel any time.` },
+  { q: "What is the difference between Creator and Creator Plus?", a: "Creator (₹99) covers comment-to-DM automation with unlimited DMs and campaigns. Creator Plus (₹299) adds your own link storefront with three fixed links, a per-campaign link and full analytics." },
   { q: "Does it work on other platforms?", a: "Instagram only for now. That is where comment-to-DM works best for creators." },
   { q: "How do payments work?", a: "Payments are processed securely by Razorpay. Prices include applicable taxes." },
 ];
 
 export default function LandingPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: APP_NAME,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `https://${APP_DOMAIN}`,
+    description: "Instagram comment-to-DM automation for Indian creators.",
+    offers: PLANS.map((p) => ({ "@type": "Offer", name: p.name, price: p.price, priceCurrency: "INR" })),
+  };
+
   return (
     <div className="bg-background text-zinc-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/60 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-8 w-auto" /></Link>
           <nav className="hidden items-center gap-7 text-sm text-zinc-600 md:flex">
             <a href="#features" className="hover:text-zinc-900">Features</a>
@@ -70,6 +84,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden rounded-full px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-white sm:block">Log in</Link>
             <Link href="/register" className="inline-flex h-10 items-center rounded-full bg-violet-600 px-5 text-sm font-semibold text-white hover:bg-violet-700">Start free</Link>
+            <LandingMenu />
           </div>
         </div>
       </header>
@@ -89,7 +104,7 @@ export default function LandingPage() {
               <span className="block bg-gradient-to-r from-violet-600 via-violet-500 to-pink-500 bg-clip-text text-transparent">And DMs into sales.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-zinc-600">
-              Someone comments your keyword on a Reel. {APP_NAME} instantly sends them a personal DM with your link, and every link lives on one creator storefront.
+              Someone comments your keyword on a Reel. {APP_NAME} instantly sends them a personal DM with your link. No copy-pasting, no missed leads.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className={primaryCta}>Start {TRIAL_DAYS}-day free trial <ArrowRight className="h-4 w-4" /></Link>
@@ -133,7 +148,7 @@ export default function LandingPage() {
         />
         <FeatureRow
           reverse
-          eyebrow="Creator storefront"
+          eyebrow="Creator storefront · Creator Plus"
           title="One storefront. Four links that actually work."
           body="Your DM points to a clean storefront with your profile, socials and links. Three stay fixed, and the fourth changes for every campaign."
           points={["Your own page at " + APP_DOMAIN + "/you", "A different fourth link per Reel", "Theme and button style you choose"]}
@@ -157,7 +172,10 @@ export default function LandingPage() {
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white">
                 <f.icon className="h-5 w-5" />
               </span>
-              <h3 className="mt-5 font-semibold">{f.title}</h3>
+              <h3 className="mt-5 flex items-center gap-2 font-semibold">
+                {f.title}
+                {"plus" in f && f.plus && <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[11px] font-semibold text-pink-700">Creator Plus</span>}
+              </h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">{f.body}</p>
             </div>
           ))}
@@ -303,7 +321,8 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
           <div>
             <Link href="/" aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-8 w-auto" /></Link>
-            <p className="mt-3 text-sm text-zinc-500">Instagram comment-to-DM automation and a storefront for every creator.</p>
+            <p className="mt-3 text-sm text-zinc-500">Instagram comment-to-DM automation for Indian creators.</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-3 inline-block text-sm font-medium text-violet-700 hover:text-violet-800">{SUPPORT_EMAIL}</a>
           </div>
           <FooterCol title="Product" links={[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["Demo storefront", "/zeeshan?campaign=cmp_python"]]} />
           <FooterCol title="Account" links={[["Log in", "/login"], ["Start free trial", "/register"], ["Admin", "/admin/login"]]} />
