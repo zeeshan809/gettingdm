@@ -3,13 +3,12 @@ import { getCurrentCreator } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function CreatorLayout({ children }: { children: React.ReactNode }) {
-  const creator = await getCurrentCreator();
+  // Run both lookups together. RLS limits notifications to the signed-in creator.
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("creator_id", creator.id)
-    .is("read_at", null);
+  const [creator, { count }] = await Promise.all([
+    getCurrentCreator(),
+    supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null),
+  ]);
   return (
     <PortalShell
       portal="creator"

@@ -49,6 +49,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Webhooks are server-to-server and carry no session.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/webhooks|api/meta|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // Only routes that need a session. Public pages (landing, storefronts, /go links,
+  // legal pages) and webhooks skip this entirely, so they load faster.
+  matcher: [
+    "/dashboard/:path*", "/campaigns/:path*", "/storefront/:path*", "/analytics/:path*",
+    "/instagram/:path*", "/billing/:path*", "/notifications/:path*", "/support/:path*",
+    "/settings/:path*", "/onboarding/:path*", "/admin/:path*",
+    "/login", "/register", "/forgot-password", "/reset-password", "/verify-email",
+    "/auth/:path*", "/api/instagram/:path*",
+  ],
 };

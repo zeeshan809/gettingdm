@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarList, Donut, TrendChart } from "@/components/charts";
+import { BarList, Donut, TrendChart } from "@/components/charts-lazy";
 import { Tabs } from "@/components/interactive";
 import { Badge, Callout, Card, CardHeader, EmptyState, StatCard, Table, Td, Th } from "@/components/ui";
 import type { DailyRow, LinkStat } from "@/lib/analytics-server";

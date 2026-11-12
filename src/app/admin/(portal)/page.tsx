@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarList, LineTrend, TrendChart } from "@/components/charts";
+import { BarList, LineTrend, TrendChart } from "@/components/charts-lazy";
 import { DateRangeFilter, rangeDays, type RangeId } from "@/components/interactive";
 import { Card, CardHeader, PageHeader, StatCard } from "@/components/ui";
 import { adminDaily, adminKpis } from "@/lib/mock-data";

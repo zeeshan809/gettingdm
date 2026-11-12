@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Instagram, Megaphone, MousePointerClick, Percent, Plus, Send, Store } from "lucide-react";
 import type { ReactNode } from "react";
-import { TrendChart } from "@/components/charts";
+import { TrendChart } from "@/components/charts-lazy";
 import { RangeFilter } from "@/components/range-filter";
 import { AutomationBadge, Card, CardHeader, Callout, EmptyState, LinkButton, cn } from "@/components/ui";
 import { triggerLabels } from "@/lib/campaigns";
