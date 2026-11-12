@@ -33,11 +33,13 @@ const nowIso = () => new Date().toISOString();
 
 // ---------- entry points ----------
 
-export async function processMetaPayload(eventId: string, payload: MetaPayload) {
+// receivedAt: when the webhook arrived. Comments that arrived before a campaign
+// existed never get a DM (so a new campaign doesn't message an old backlog).
+export async function processMetaPayload(eventId: string, payload: MetaPayload, receivedAt: string = nowIso()) {
   try {
     for (const entry of payload.entry ?? []) {
       for (const change of entry.changes ?? []) {
-        if (change.field === "comments" && change.value) await handleComment(entry.id, change.value);
+        if (change.field === "comments" && change.value) await handleComment(entry.id, change.value, receivedAt);
       }
       for (const m of entry.messaging ?? []) await handleMessage(entry.id, m);
     }
@@ -63,13 +65,13 @@ export async function runDueWork() {
   const stale = new Date(Date.now() - 2 * 60_000).toISOString();
   const { data: missed } = await db
     .from("webhook_events")
-    .select("id, payload")
+    .select("id, payload, received_at")
     .eq("provider", "meta")
     .is("processed_at", null)
     .is("error", null)
     .lte("received_at", stale)
     .limit(25);
-  for (const ev of missed ?? []) await processMetaPayload(ev.id, ev.payload as MetaPayload);
+  for (const ev of missed ?? []) await processMetaPayload(ev.id, ev.payload as MetaPayload, ev.received_at);
 
   return { delivered: due?.length ?? 0, recovered: missed?.length ?? 0 };
 }
@@ -107,7 +109,7 @@ async function claim(id: string, from: string[]) {
 
 // ---------- comments ----------
 
-async function handleComment(igUserId: string, v: CommentValue) {
+async function handleComment(igUserId: string, v: CommentValue, receivedAt: string) {
   if (!v.id || !v.media?.id || !v.from?.id) return;
   if (v.from.id === igUserId) return; // the creator's own comments and replies
 
@@ -117,12 +119,13 @@ async function handleComment(igUserId: string, v: CommentValue) {
   const db = svc();
   const { data: campaign } = await db
     .from("campaigns")
-    .select("id, keywords, match_rule, delay_seconds")
+    .select("id, keywords, match_rule, delay_seconds, created_at")
     .eq("creator_id", account.creatorId)
     .eq("ig_media_id", v.media.id)
     .eq("active", true)
     .maybeSingle();
   if (!campaign) return;
+  if (new Date(receivedAt) < new Date(campaign.created_at)) return; // comment is older than the campaign
 
   const { data: row, error } = await db
     .from("comment_events")
