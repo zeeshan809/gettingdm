@@ -27,11 +27,17 @@ function client() {
 // Uploads and returns the public URL.
 export async function putObject(key: string, body: ArrayBuffer, contentType: string) {
   const c = client();
-  const res = await c.aws.fetch(c.objectUrl(key), {
+  const bytes = new Uint8Array(body);
+  // Sign, then send the raw bytes ourselves. Sending aws4fetch's signed Request
+  // streams the body without a size on Vercel, and R2 rejects that (411).
+  const signed = await c.aws.sign(c.objectUrl(key), {
     method: "PUT",
-    body,
+    body: bytes,
     headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
   });
+  const headers = new Headers(signed.headers);
+  headers.set("Content-Length", String(bytes.byteLength));
+  const res = await fetch(signed.url, { method: "PUT", headers, body: bytes });
   if (!res.ok) throw new Error(`R2 upload failed (${res.status})`);
   return `${c.publicUrl}/${key}`;
 }
