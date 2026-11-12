@@ -245,8 +245,8 @@ export default function LandingPage() {
                 <div
                   key={plan.id}
                   className={featured
-                    ? "relative rounded-3xl bg-violet-950 p-7 text-white shadow-xl"
-                    : "relative rounded-3xl border border-zinc-200 bg-white p-7"}
+                    ? "relative flex flex-col rounded-3xl bg-violet-950 p-7 text-white shadow-xl"
+                    : "relative flex flex-col rounded-3xl border border-zinc-200 bg-white p-7"}
                 >
                   {featured && <span className="absolute -top-3 right-7 rounded-full bg-pink-300 px-3 py-1 text-xs font-semibold text-pink-900">Most popular</span>}
                   <h3 className="text-lg font-semibold">{plan.name}</h3>
@@ -267,7 +267,7 @@ export default function LandingPage() {
                     ))}
                   </ul>
                   <p className={featured ? "mt-6 text-xs font-semibold uppercase tracking-wide text-violet-300" : "mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-400"}>Coming soon</p>
-                  <ul className="mt-3 flex flex-wrap gap-2">
+                  <ul className="mb-8 mt-3 flex flex-wrap gap-2">
                     {plan.features.filter((f) => f.soon).map((f) => (
                       <li key={f.label} className={featured ? "rounded-full bg-white/10 px-2.5 py-1 text-xs text-violet-100" : "rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600"}>{f.label}</li>
                     ))}
@@ -275,8 +275,8 @@ export default function LandingPage() {
                   <Link
                     href="/register"
                     className={featured
-                      ? "mt-8 inline-flex h-11 w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-violet-900 hover:bg-violet-50"
-                      : "mt-8 inline-flex h-11 w-full items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700"}
+                      ? "mt-auto inline-flex h-11 w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-violet-900 hover:bg-violet-50"
+                      : "mt-auto inline-flex h-11 w-full items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white hover:bg-violet-700"}
                   >
                     Start free trial
                   </Link>
