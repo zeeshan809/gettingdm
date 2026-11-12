@@ -15,6 +15,7 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return new NextResponse("Unauthorized", { status: 401 });
-  const result = await runDueWork();
+  const body = (await request.json().catch(() => ({}))) as { only?: string };
+  const result = await runDueWork({ followOnly: body.only === "follow" });
   return NextResponse.json({ ok: true, ...result });
 }

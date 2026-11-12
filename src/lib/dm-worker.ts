@@ -54,7 +54,9 @@ export async function processMetaPayload(eventId: string, payload: MetaPayload, 
 }
 
 // Called every minute: delayed DMs, retries, and webhooks that weren't processed in time.
-export async function runDueWork() {
+export async function runDueWork({ followOnly = false }: { followOnly?: boolean } = {}) {
+  // Fast schedule (every 10s, only while someone is mid follow-gate): just look for taps.
+  if (followOnly) return { delivered: 0, recovered: 0, followReplies: await pollFollowGates() };
   const db = svc();
   const { data: due } = await db
     .from("comment_events")
@@ -249,14 +251,22 @@ async function privateReplyWithFallback(igUserId: string, token: string, comment
   }
 }
 
+// Errors that won't go away on retry, with a message the creator can act on.
+const isPermanent = (e: unknown) => e instanceof MetaError && (e.code === 100 || e.code === 10 || e.code === 551);
+function errorText(e: unknown) {
+  const raw = e instanceof Error ? e.message : "Send failed";
+  if (/thread owner/i.test(raw)) return "Another DM automation app is handling this conversation. Turn off other Instagram DM tools on this account.";
+  return raw.slice(0, 500);
+}
+
 async function handleSendError(eventId: string, creatorId: string, attempts: number, e: unknown) {
-  const message = e instanceof Error ? e.message.slice(0, 500) : "Send failed";
+  const message = errorText(e);
   if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) {
     await markConnectionProblem(creatorId, e);
     return setStatus(eventId, { status: "failed", error: message, processed_at: nowIso() });
   }
   // 10900-ish / 551 / "already replied" style errors won't succeed on retry either.
-  const permanent = e instanceof MetaError && (e.code === 100 || e.code === 10 || e.code === 551);
+  const permanent = isPermanent(e);
   const next = attempts + 1;
   if (permanent || next >= MAX_ATTEMPTS) {
     return setStatus(eventId, { status: "failed", attempts: next, error: message, processed_at: nowIso() });
@@ -308,7 +318,11 @@ async function resolveFollowGate(ev: GateRow, account: Account, token: string, s
   } catch (e) {
     console.error("follow-gate reply failed", e);
     if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) await markConnectionProblem(account.creatorId, e);
-    await setStatus(ev.id, { status: "awaiting_follow", error: e instanceof Error ? e.message.slice(0, 500) : "Reply failed" });
+    // Permanent (e.g. another app owns the thread): stop. Otherwise the next tap or poll retries.
+    await setStatus(
+      ev.id,
+      isPermanent(e) ? { status: "failed", error: errorText(e), processed_at: nowIso() } : { status: "awaiting_follow", error: errorText(e) },
+    );
   }
 }
 
