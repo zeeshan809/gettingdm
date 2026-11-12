@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2 } from "lucide-react";
 import { StorefrontView } from "@/components/storefront-view";
 import { Tabs, Toggle, useToast } from "@/components/interactive";
@@ -17,20 +17,98 @@ const BRAND_SWATCHES = ["#3f79c9", "#e47a54", "#2563eb", "#059669", "#ea580c", "
 
 type Tab = "links" | "profile" | "appearance";
 
-// Uploads switch on once image storage (Cloudflare R2) is connected.
-function ImageSlot({ label, value, shape }: { label: string; value: string | null; shape: "circle" | "wide" }) {
+// Shrinks a photo in the browser (phone photos are often 5–10 MB) to a JPEG
+// no larger than `max` px on its longest side, so uploads are small and quick.
+async function shrink(file: File, max: number): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff"; // transparent PNGs get a white background
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.88));
+}
+
+// Uploads go straight to Cloudflare R2 and are saved immediately (no need to press Save).
+function ImageSlot({ kind, label, value, shape, onChange }: {
+  kind: "avatar" | "cover";
+  label: string;
+  value: string | null;
+  shape: "circle" | "wide";
+  onChange: (url: string | null) => void;
+}) {
+  const toast = useToast();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function send(request: Promise<Response>, done: string) {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await request;
+      const data = (await res.json().catch(() => ({}))) as { url?: string | null; error?: string };
+      if (!res.ok || data.url === undefined) throw new Error(data.error || "Upload failed. Please try again.");
+      onChange(data.url);
+      toast(done);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function upload(file: File | undefined) {
+    if (input.current) input.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return setError("Please choose an image file.");
+    let blob: Blob;
+    try {
+      blob = await shrink(file, kind === "avatar" ? 512 : 1600);
+    } catch {
+      return setError("Couldn't read that image. Try a JPG or PNG.");
+    }
+    const form = new FormData();
+    form.set("kind", kind);
+    form.set("file", blob, `${kind}.jpg`);
+    await send(fetch("/api/uploads/storefront", { method: "POST", body: form }), `${label} updated`);
+  }
+
   return (
     <div>
       <p className="mb-1.5 text-sm font-medium text-zinc-800">{label}</p>
       <div className="flex items-center gap-4">
-        <div className={cn("flex shrink-0 items-center justify-center overflow-hidden bg-zinc-100 text-zinc-400", shape === "circle" ? "h-16 w-16 rounded-full" : "h-16 w-32 rounded-lg")}>
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          disabled={busy}
+          aria-label={`Upload ${label.toLowerCase()}`}
+          className={cn("flex shrink-0 items-center justify-center overflow-hidden bg-zinc-100 text-zinc-400", shape === "circle" ? "h-16 w-16 rounded-full" : "h-16 w-32 rounded-lg", busy && "animate-pulse")}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {value ? <img src={value} alt="" className="h-full w-full object-cover" /> : <ImagePlus className="h-5 w-5" />}
-        </div>
+        </button>
         <div>
-          <Button type="button" size="sm" variant="secondary" disabled>Upload</Button>
-          <p className="mt-1 text-xs text-zinc-500">Image uploads are coming soon.</p>
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => input.current?.click()}>
+              {busy ? "Uploading…" : value ? "Change" : "Upload"}
+            </Button>
+            {value && (
+              <Button type="button" size="sm" variant="ghost" disabled={busy}
+                onClick={() => send(fetch(`/api/uploads/storefront?kind=${kind}`, { method: "DELETE" }), `${label} removed`)}>
+                Remove
+              </Button>
+            )}
+          </div>
+          <p className={cn("mt-1 text-xs", error ? "text-red-600" : "text-zinc-500")}>
+            {error || (shape === "circle" ? "Square image works best. JPG, PNG or WebP." : "Wide image, about 3:1. JPG, PNG or WebP.")}
+          </p>
         </div>
+        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => upload(e.target.files?.[0])} />
       </div>
     </div>
   );
@@ -159,8 +237,8 @@ export function StorefrontEditor({
 
           {tab === "profile" && (
             <Card className="space-y-5 p-5">
-              <ImageSlot label="Profile picture" value={profile.avatarUrl} shape="circle" />
-              <ImageSlot label="Cover image" value={profile.coverUrl} shape="wide" />
+              <ImageSlot kind="avatar" label="Profile picture" value={profile.avatarUrl} shape="circle" onChange={(url) => setProfile((p) => ({ ...p, avatarUrl: url }))} />
+              <ImageSlot kind="cover" label="Cover image" value={profile.coverUrl} shape="wide" onChange={(url) => setProfile((p) => ({ ...p, coverUrl: url }))} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Display name"><Input value={profile.name} maxLength={80} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
                 <Field label="Username" help="Changing this changes your storefront URL. Old links will stop working.">
