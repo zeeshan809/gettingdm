@@ -27,6 +27,10 @@ type MetaPayload = { entry?: { id: string; changes?: { field: string; value: Com
 
 const MAX_ATTEMPTS = 4;
 const MAX_FOLLOW_PROMPTS = 5;
+const RATE_LIMIT_RETRY_MIN = 10;
+// Reading DM threads costs Meta requests, and the app's allowance is small until App
+// Review. Fresh follow prompts are checked every minute, older ones every 10 minutes.
+const FOLLOW_POLL_FRESH_MS = 30 * 60_000;
 const REPLY_WINDOW_MS = 7 * 86_400_000; // Instagram allows a private reply within 7 days
 const LINK_PAYLOAD = "GDM_LINK:";
 const FOLLOWED_LABEL = "I've followed ✅";
@@ -269,6 +273,15 @@ async function handleSendError(eventId: string, creatorId: string, attempts: num
     await markConnectionProblem(creatorId, e);
     return setStatus(eventId, { status: "failed", error: message, processed_at: nowIso() });
   }
+  // Meta's request limit is temporary and a comment can be answered for 7 days, so
+  // wait and retry without using up attempts (deliver() stops after 7 days).
+  if (isRateLimited(e)) {
+    return setStatus(eventId, {
+      status: "queued",
+      error: "Waiting for Meta's request limit to reset. Will retry automatically.",
+      next_attempt_at: new Date(Date.now() + RATE_LIMIT_RETRY_MIN * 60_000).toISOString(),
+    });
+  }
   // 10900-ish / 551 / "already replied" style errors won't succeed on retry either.
   const permanent = isPermanent(e);
   const next = attempts + 1;
@@ -368,10 +381,13 @@ async function pollFollowGates() {
     .not("commenter_ig_id", "is", null)
     .limit(200);
   if (!rows?.length) return 0;
+  const fresh = rows.filter((r) => Date.now() - new Date(r.processed_at ?? 0).getTime() < FOLLOW_POLL_FRESH_MS);
+  const due = new Date().getUTCMinutes() % 10 === 0 ? rows : fresh;
+  if (!due.length) return 0;
 
   let handled = 0;
   const byCreator = new Map<string, typeof rows>();
-  for (const r of rows) byCreator.set(r.creator_id, [...(byCreator.get(r.creator_id) ?? []), r]);
+  for (const r of due) byCreator.set(r.creator_id, [...(byCreator.get(r.creator_id) ?? []), r]);
   for (const [creatorId, waiting] of byCreator) {
     try {
       const { data: acc } = await db.from("instagram_accounts").select("ig_user_id").eq("creator_id", creatorId).maybeSingle();
