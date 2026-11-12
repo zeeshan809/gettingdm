@@ -3,7 +3,11 @@ export const APP_NAME = "GettingDM";
 export const APP_DOMAIN = "gettingdm.store";
 // Shown on the privacy, terms and data-deletion pages.
 export const SUPPORT_EMAIL = "support@gettingdm.store";
-export const LEGAL_UPDATED = "12 November 2026";
+export const LEGAL_UPDATED = "13 November 2026";
+// The business behind the service, as on your Meta Business Verification documents.
+// Fill these in once known; the legal pages show them when set.
+export const BUSINESS_LEGAL_NAME = "";
+export const BUSINESS_ADDRESS = "";
 
 export const TRIAL_DAYS = 30;
 

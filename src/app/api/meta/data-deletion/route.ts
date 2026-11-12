@@ -15,7 +15,13 @@ export async function POST(request: NextRequest) {
 
   const svc = createServiceClient();
   const { data: accounts } = await svc.from("instagram_accounts").select("creator_id").eq("fb_user_id", data.user_id);
-  if (accounts?.length) await svc.from("instagram_accounts").delete().eq("fb_user_id", data.user_id);
+  for (const { creator_id } of accounts ?? []) {
+    // All Instagram data received through this connection: the connection and token
+    // (token cascades), commenter records, and post captions/thumbnails on campaigns.
+    await svc.from("instagram_accounts").delete().eq("creator_id", creator_id);
+    await svc.from("comment_events").delete().eq("creator_id", creator_id);
+    await svc.from("campaigns").update({ active: false, media_caption: null, media_thumbnail_url: null }).eq("creator_id", creator_id);
+  }
 
   const code = confirmationCode();
   const { error } = await svc.from("data_deletion_requests").insert({

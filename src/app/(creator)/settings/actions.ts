@@ -1,5 +1,6 @@
 "use server";
 
+import { deleteByPublicUrl } from "@/lib/r2";
 import { revalidatePath } from "next/cache";
 import { cancelSubscription, razorpayConfigured } from "@/lib/razorpay";
 import { redirect } from "next/navigation";
@@ -46,11 +47,15 @@ export async function deleteAccount(confirmUsername: string): Promise<Result> {
     }
   }
 
+  // Storefront images live in R2, outside the database cascade.
+  const { data: images } = await createServiceClient().from("profiles").select("avatar_url, cover_url").eq("id", creator.id).maybeSingle();
+
   const { error } = await createServiceClient().auth.admin.deleteUser(creator.id);
   if (error) {
     console.error("account deletion failed", error);
     return { error: "Couldn't delete your account. Please contact support." };
   }
+  await Promise.all([deleteByPublicUrl(images?.avatar_url), deleteByPublicUrl(images?.cover_url)]).catch((e) => console.error("image cleanup failed", e));
   await (await createClient()).auth.signOut().catch(() => {});
   redirect("/login?error=deleted");
 }
