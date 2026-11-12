@@ -251,6 +251,9 @@ async function privateReplyWithFallback(igUserId: string, token: string, comment
   }
 }
 
+// Meta request-limit errors (app, user, page/account level).
+const isRateLimited = (e: unknown) => e instanceof MetaError && [4, 17, 32, 613].includes(e.code ?? 0);
+
 // Errors that won't go away on retry, with a message the creator can act on.
 const isPermanent = (e: unknown) => e instanceof MetaError && (e.code === 100 || e.code === 10 || e.code === 551);
 function errorText(e: unknown) {
@@ -382,13 +385,21 @@ async function pollFollowGates() {
         if (!thread || thread.updated <= lastPrompt) continue;
         const messages = await conversationMessages(thread.id, token);
         const replied = messages.some((m) => m.from?.id === row.commenter_ig_id && metaTime(m.created_time) > lastPrompt);
-        if (!replied || !(await claim(row.id, ["awaiting_follow"]))) continue;
+        if (!replied) {
+          // The thread changed but not by them (e.g. another app messaged). Remember we've
+          // read up to here so we don't re-read it every minute; later replies still count.
+          await db.from("comment_events").update({ processed_at: new Date(thread.updated).toISOString() }).eq("id", row.id).eq("status", "awaiting_follow");
+          continue;
+        }
+        if (!(await claim(row.id, ["awaiting_follow"]))) continue;
         await resolveFollowGate(row, account, token, row.commenter_ig_id!);
         handled++;
       }
     } catch (e) {
       console.error("follow-gate polling failed", e);
       if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) await markConnectionProblem(creatorId, e);
+      // Meta's request limit: stop this run; the next minute tries again.
+      if (isRateLimited(e)) break;
     }
   }
   return handled;
