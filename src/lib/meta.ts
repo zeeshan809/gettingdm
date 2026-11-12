@@ -98,9 +98,10 @@ export async function assignedInstagramAccounts(token: string): Promise<Connecte
 }
 
 // Webhooks for a connected account only arrive once it's subscribed.
-// comments: comment-to-DM. messages: replies to our DMs (Follow before DM).
+// comments: comment-to-DM. messages / messaging_postbacks: replies and button taps (Follow
+// before DM). standby: the same, when another app is the account's primary receiver.
 export async function subscribeInstagram(igUserId: string, token: string) {
-  await graph(`/${igUserId}/subscribed_apps`, { subscribed_fields: "comments,messages", access_token: token }, { method: "POST" });
+  await graph(`/${igUserId}/subscribed_apps`, { subscribed_fields: "comments,messages,messaging_postbacks,standby", access_token: token }, { method: "POST" });
 }
 
 // ---------- Messaging ----------

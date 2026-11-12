@@ -22,7 +22,8 @@ type MessagingEvent = {
   message?: { text?: string; is_echo?: boolean; quick_reply?: { payload?: string } };
   postback?: { payload?: string };
 };
-type MetaPayload = { entry?: { id: string; changes?: { field: string; value: CommentValue }[]; messaging?: MessagingEvent[] }[] };
+// standby: messages Meta routes to us while another app is the primary receiver for the account.
+type MetaPayload = { entry?: { id: string; changes?: { field: string; value: CommentValue }[]; messaging?: MessagingEvent[]; standby?: MessagingEvent[] }[] };
 
 const MAX_ATTEMPTS = 4;
 const MAX_FOLLOW_PROMPTS = 5;
@@ -44,7 +45,7 @@ export async function processMetaPayload(eventId: string, payload: MetaPayload, 
       for (const change of entry.changes ?? []) {
         if (change.field === "comments" && change.value) await handleComment(entry.id, change.value, receivedAt);
       }
-      for (const m of entry.messaging ?? []) await handleMessage(entry.id, m);
+      for (const m of [...(entry.messaging ?? []), ...(entry.standby ?? [])]) await handleMessage(entry.id, m);
     }
     await svc().from("webhook_events").update({ processed_at: nowIso(), error: null }).eq("id", eventId);
   } catch (e) {
