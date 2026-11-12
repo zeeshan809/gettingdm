@@ -149,11 +149,11 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
 
   return (
     <ToastProvider>
-      <div className="min-h-screen lg:pl-64">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white lg:block">{sidebar}</aside>
+      <div className="min-h-screen xl:pl-64">
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white xl:block">{sidebar}</aside>
 
         {open && (
-          <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="fixed inset-0 z-40 xl:hidden">
             <div className="absolute inset-0 bg-zinc-900/40" onClick={() => setOpen(false)} />
             <aside className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl">
               <button type="button" onClick={() => setOpen(false)} className="absolute right-3 top-3.5 rounded p-1 text-zinc-500" aria-label="Close menu">
@@ -164,7 +164,7 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
           </div>
         )}
 
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur xl:hidden">
           <button type="button" onClick={() => setOpen(true)} className="rounded p-1.5 text-zinc-600 hover:bg-zinc-100" aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
