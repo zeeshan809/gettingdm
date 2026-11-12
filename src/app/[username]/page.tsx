@@ -13,13 +13,13 @@ const campaignParam = (c: string | string[] | undefined) => (typeof c === "strin
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ username }, { campaign }] = await Promise.all([params, searchParams]);
   const store = await getPublicStorefront(username, campaignParam(campaign));
-  return store ? { title: `${store.profile.name} (@${store.profile.username})`, description: store.profile.bio } : {};
+  return store?.storefrontEnabled ? { title: `${store.profile.name} (@${store.profile.username})`, description: store.profile.bio } : {};
 }
 
 export default async function PublicStorefrontPage({ params, searchParams }: Props) {
   const [{ username }, { campaign }] = await Promise.all([params, searchParams]);
   const store = await getPublicStorefront(username, campaignParam(campaign));
-  if (!store) notFound();
+  if (!store || !store.storefrontEnabled) notFound();
 
   await trackStorefrontEvent({ creatorId: store.creatorId, campaignId: store.campaignId, type: "visit" });
 

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { CampaignForm } from "@/components/campaign-form";
 import { AutomationBadge, Card, CardHeader, PageHeader, StatCard, Table, Td, Th } from "@/components/ui";
 import { getCurrentCreator } from "@/lib/auth";
+import { hasStorefront } from "@/lib/plan";
 import { getCampaignStats } from "@/lib/campaigns-server";
 import { getInstagramMedia } from "@/lib/instagram";
 import { UUID_RE } from "@/lib/storefront";
@@ -78,6 +79,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         sampleMedia={ig.sample}
         igHandle={ig.handle}
         username={creator.username}
+        storefront={hasStorefront(creator.subscription)}
         mediaInUse={(active ?? []).map((a) => a.ig_media_id)}
       />
 

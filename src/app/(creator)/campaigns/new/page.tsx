@@ -1,6 +1,7 @@
 import { CampaignForm } from "@/components/campaign-form";
 import { PageHeader } from "@/components/ui";
 import { getCurrentCreator } from "@/lib/auth";
+import { hasStorefront } from "@/lib/plan";
 import { getInstagramMedia } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,6 +23,7 @@ export default async function NewCampaignPage() {
         sampleMedia={ig.sample}
         igHandle={ig.handle}
         username={creator.username}
+        storefront={hasStorefront(creator.subscription)}
         mediaInUse={(active ?? []).map((c) => c.ig_media_id)}
       />
     </>

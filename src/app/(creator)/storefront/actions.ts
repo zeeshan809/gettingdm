@@ -1,10 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getCurrentCreator } from "@/lib/auth";
+import { hasStorefront } from "@/lib/plan";
 import { createClient } from "@/lib/supabase/server";
 import { validateStorefront, type StorefrontInput } from "@/lib/storefront";
 
 export async function saveStorefront(input: StorefrontInput): Promise<{ error: string } | { ok: true }> {
+  const creator = await getCurrentCreator();
+  if (!hasStorefront(creator.subscription)) return { error: "The storefront is part of Creator Plus. Upgrade to edit it." };
+
   const error = validateStorefront(input);
   if (error) return { error };
 

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { hasStorefront } from "./plan";
 import { createServiceClient } from "./supabase/server";
 import {
   parseSocials, parseTheme, USERNAME_RE, UUID_RE,
@@ -26,7 +27,8 @@ export const getPublicStorefront = cache(async (username: string, campaignParam?
     .from("profiles")
     .select(`id, username, full_name, bio, avatar_url, cover_url, theme, socials, status,
       featured_links (position, title, description, url, button_label, active),
-      storefront_default_links (title, description, url, button_label, active)`)
+      storefront_default_links (title, description, url, button_label, active),
+      subscriptions (plan, status)`)
     .eq("username", handle)
     .maybeSingle();
   if (!p || p.status !== "active") return null;
@@ -67,7 +69,10 @@ export const getPublicStorefront = cache(async (username: string, campaignParam?
     .sort((a, b) => a.position - b.position)
     .map((l) => ({ ...toStoreLink(l), position: l.position as 1 | 2 | 3 }));
 
-  return { creatorId: p.id, profile, featured, fourth, campaignId };
+  // Creator (Rs 99) accounts have no public storefront; their DMs link straight to the campaign link.
+  const storefrontEnabled = hasStorefront(p.subscriptions);
+
+  return { creatorId: p.id, profile, featured, fourth, campaignId, storefrontEnabled };
 });
 
 const BOT_RE = /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse/i;

@@ -10,6 +10,7 @@ import { getCurrentCreator } from "@/lib/auth";
 import { resolveRange } from "@/lib/date-range";
 import { dateTime, num, pct } from "@/lib/format";
 import { getInstagramAccount } from "@/lib/instagram";
+import { hasStorefront } from "@/lib/plan";
 
 export const metadata = { title: "Dashboard" };
 
@@ -31,10 +32,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const firstName = (creator.full_name || creator.username).split(" ")[0];
   const activeCount = campaigns.filter((c) => c.active).length;
   const hasData = t.comments + t.visits + t.clicks > 0;
+  const storefront = hasStorefront(creator.subscription);
 
   const setup = [
     { done: instagram?.status === "connected", title: "Connect Instagram", body: "Log in with Meta so we can reply to comments.", href: "/instagram", cta: "Connect", icon: Instagram },
-    { done: !!creator.onboarding_completed, title: "Set up your storefront", body: "Add your photo and the links followers should see.", href: "/storefront", cta: "Set up", icon: Store },
+    ...(storefront ? [{ done: !!creator.onboarding_completed, title: "Set up your storefront", body: "Add your photo and the links followers should see.", href: "/storefront", cta: "Set up", icon: Store }] : []),
     { done: campaigns.length > 0, title: "Create your first campaign", body: "Pick a Reel, a keyword and the link to send.", href: "/campaigns/new", cta: "Create", icon: Megaphone },
   ];
   const setupDone = setup.filter((s) => s.done).length;
@@ -106,7 +108,9 @@ export default async function DashboardPage({ searchParams }: Props) {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Kpi icon={<Send className="h-4 w-4" />} label="DMs sent" value={num(t.sent)} change={delta(t.sent, p.sent)} />
           <Kpi icon={<MousePointerClick className="h-4 w-4" />} label="Link clicks" value={num(t.clicks)} change={delta(t.clicks, p.clicks)} />
-          <Kpi icon={<Store className="h-4 w-4" />} label="Storefront visits" value={num(t.visits)} change={delta(t.visits, p.visits)} />
+          {storefront
+            ? <Kpi icon={<Store className="h-4 w-4" />} label="Storefront visits" value={num(t.visits)} change={delta(t.visits, p.visits)} />
+            : <Kpi icon={<Megaphone className="h-4 w-4" />} label="Comments" value={num(t.comments)} change={delta(t.comments, p.comments)} />}
           <Kpi icon={<Percent className="h-4 w-4" />} label="Click rate" value={rate(t.clicks, t.sent)} note="Clicks per DM sent" />
         </div>
 

@@ -8,6 +8,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const store = await getPublicStorefront(username, request.nextUrl.searchParams.get("campaign") ?? undefined);
   if (!store) return NextResponse.redirect(new URL("/", request.url));
 
+  // DM link for accounts without a storefront: straight to this campaign's link.
+  if (slot === "dm") {
+    if (store.fourth?.source !== "campaign") return NextResponse.redirect(new URL("/", request.url));
+    await trackStorefrontEvent({ creatorId: store.creatorId, campaignId: store.campaignId, type: "click", slot: 4 });
+    return NextResponse.redirect(store.fourth.url);
+  }
+
+  if (!store.storefrontEnabled) return NextResponse.redirect(new URL("/", request.url));
   const n = Number(slot);
   const link = n === 4 ? store.fourth : store.featured.find((l) => l.position === n);
   if (!link) return NextResponse.redirect(new URL(`/${store.profile.username}`, request.url));

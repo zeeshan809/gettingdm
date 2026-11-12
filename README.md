@@ -57,8 +57,17 @@ node --env-file=.env.local scripts/create-admin.mjs <email> <password> "<name>"
   - Settings covers name, login email, password change (re-checks the current password), email preferences, and account deletion (deletes the auth user; all data cascades).
   - Notifications are created only server-side through `notify()`: a welcome message on sign-up, and an alert when support replies.
   - Support tickets are created with `create_support_ticket()`. A trigger sets the ticket to "waiting" on a support reply and back to "open" on a creator reply.
+- **Plans:**
+  - Free trial unlocks everything. Creator (₹99) is DM automation only. Creator Plus (₹299) adds the storefront and its links.
+  - `src/lib/plan.ts` decides access (`hasStorefront`) and the link each DM carries (`dmLinkFor`). The comment-to-DM worker must use `dmLinkFor` when it sends a DM.
+  - Creator accounts have no public storefront (404); their DM link is `/go/<username>/dm?campaign=<id>`, which tracks the click and redirects to the campaign link.
+- **Razorpay subscriptions:**
+  - In the Razorpay dashboard, create two monthly plans: Creator ₹99 and Creator Plus ₹299. Put their ids in `RAZORPAY_PLAN_CREATOR` and `RAZORPAY_PLAN_CREATOR_PLUS`, plus `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (in `.env.local` and in Vercel).
+  - Add a webhook to `https://gettingdm.store/api/webhooks/razorpay` with a secret (`RAZORPAY_WEBHOOK_SECRET`) and the `subscription.*` and `payment.failed` events.
+  - Subscribing during the trial sets up the mandate; the first charge is on the trial's last day. Plan switches apply immediately. Cancelling ends the plan at the end of the paid period.
+  - Until the keys are set, the billing page shows "Payments are being set up" and the buttons stay disabled.
 - **Image uploads:** disabled until R2 is connected.
-- **Still mock data:** the Instagram and billing pages, and the admin portal.
+- **Still mock data:** the admin portal.
 
 ## Wiring the backend later
 

@@ -18,6 +18,7 @@ export type ShellUser = {
   storefrontPath?: string;
   trialDaysLeft?: number | null;
   unreadCount?: number;
+  storefrontLocked?: boolean;
 };
 
 type NavItem = { href: string; label: string; icon: typeof Zap };
@@ -130,6 +131,9 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
                     >
                       <item.icon className="h-4 w-4" />
                       {item.label}
+                      {item.href === "/storefront" && user.storefrontLocked && (
+                        <span className="ml-auto rounded-full bg-pink-100 px-1.5 py-0.5 text-[10px] font-semibold text-pink-700">Plus</span>
+                      )}
                       {item.href === "/notifications" && !!user.unreadCount && (
                         <span className="ml-auto rounded-full bg-violet-600 px-1.5 text-[10px] font-semibold text-white">{user.unreadCount > 99 ? "99+" : user.unreadCount}</span>
                       )}

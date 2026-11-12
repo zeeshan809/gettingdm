@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Check, Info, X } from "lucide-react";
 import { createCampaign, updateCampaign } from "@/app/(creator)/campaigns/actions";
-import { APP_DOMAIN } from "@/lib/config";
+import { dmLinkFor } from "@/lib/plan";
 import {
   CTA_MAX, KEYWORD_MAX_LENGTH, KEYWORDS_MAX, MESSAGE_MAX, normalizeKeyword,
   type CampaignInput, type InstagramMedia,
@@ -33,6 +33,7 @@ export function CampaignForm({
   igHandle,
   username,
   mediaInUse,
+  storefront,
 }: {
   campaignId?: string;
   initial?: CampaignInput;
@@ -41,6 +42,7 @@ export function CampaignForm({
   igHandle: string | null;
   username: string;
   mediaInUse: string[];
+  storefront: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -65,7 +67,7 @@ export function CampaignForm({
   };
 
   const selected = media.find((m) => m.id === form.mediaId);
-  const storefrontUrl = `https://${APP_DOMAIN}/${username}?campaign=${campaignId ?? "…"}`;
+  const storefrontUrl = dmLinkFor({ username, campaignId: campaignId ?? "…", storefront });
   const anyComment = form.matchRule === "any";
   const needsKeyword = !anyComment && form.keywords.length === 0;
   const matched = matchKeyword(testComment, form.keywords, form.matchRule);
@@ -208,7 +210,7 @@ export function CampaignForm({
         <Card>
           <CardHeader title="3. Automated DM" description="Sent as a private reply through Meta's official API." />
           <div className="space-y-4 p-5">
-            <Field label="Message" hint={`${form.message.length}/${MESSAGE_MAX}`} help="Use {first_name} or {username} to personalise. Your storefront link is added automatically.">
+            <Field label="Message" hint={`${form.message.length}/${MESSAGE_MAX}`} help={`Use {first_name} or {username} to personalise. ${storefront ? "Your storefront link" : "Your campaign link"} is added automatically.`}>
               <Textarea rows={3} required maxLength={MESSAGE_MAX} value={form.message} onChange={(e) => set("message", e.target.value)} />
             </Field>
             <Field label="Call-to-action button text">
@@ -218,7 +220,10 @@ export function CampaignForm({
         </Card>
 
         <Card>
-          <CardHeader title="4. Campaign link (4th storefront link)" description="Shown alongside your three featured links only for visitors from this campaign." />
+          <CardHeader
+            title={storefront ? "4. Campaign link (4th storefront link)" : "4. Campaign link"}
+            description={storefront ? "Shown alongside your three featured links only for visitors from this campaign." : "Where people land when they tap the link in your DM."}
+          />
           <div className="grid gap-4 p-5 sm:grid-cols-2">
             <Field label="Link title"><Input required maxLength={60} value={form.link.title} onChange={(e) => setLink("title", e.target.value)} placeholder="Python Handbook" /></Field>
             <Field label="Button text"><Input maxLength={30} value={form.link.buttonLabel} onChange={(e) => setLink("buttonLabel", e.target.value)} /></Field>

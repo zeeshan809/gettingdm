@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cancelSubscription, razorpayConfigured } from "@/lib/razorpay";
 import { redirect } from "next/navigation";
 import { getCurrentCreator } from "@/lib/auth";
 import { EMAIL_PREF_KEYS, type EmailPrefs } from "@/lib/settings";
@@ -30,10 +31,20 @@ export async function saveEmailPrefs(prefs: EmailPrefs): Promise<Result> {
 }
 
 // Deletes the auth user; every creator table cascades from it.
-// TODO(billing): cancel the Razorpay subscription first once billing exists.
+// Any Razorpay subscription is cancelled first so the creator is never charged again.
 export async function deleteAccount(confirmUsername: string): Promise<Result> {
   const creator = await getCurrentCreator();
   if (confirmUsername.trim().toLowerCase() !== creator.username) return { error: "The username doesn't match." };
+
+  const { data: sub } = await createServiceClient().from("subscriptions").select("razorpay_subscription_id").eq("creator_id", creator.id).maybeSingle();
+  if (sub?.razorpay_subscription_id && razorpayConfigured()) {
+    try {
+      await cancelSubscription(sub.razorpay_subscription_id, false);
+    } catch (e) {
+      console.error("razorpay cancel on delete failed", e);
+      return { error: "Couldn't cancel your subscription. Please try again or contact support." };
+    }
+  }
 
   const { error } = await createServiceClient().auth.admin.deleteUser(creator.id);
   if (error) {
