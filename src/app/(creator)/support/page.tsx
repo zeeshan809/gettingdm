@@ -11,7 +11,7 @@ export const metadata = { title: "Support" };
 const faqs = [
   { q: "Why didn't someone get a DM?", a: "Instagram only allows one private reply per comment, within 7 days. Comments that don't match your keyword rule, or repeat commenters, are skipped." },
   { q: "Can I change my featured links without editing campaigns?", a: "Yes. Featured links are global — edit them on the Storefront page and every campaign uses the new version." },
-  { q: "How many campaigns can I run?", a: "Up to 5 active campaigns on Creator and 50 on Creator Plus. Paused campaigns don't count." },
+  { q: "How many campaigns can I run?", a: "As many as you like. Both Creator and Creator Plus include unlimited active campaigns." },
 ];
 
 export default async function SupportPage() {

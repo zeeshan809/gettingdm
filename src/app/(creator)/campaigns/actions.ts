@@ -11,8 +11,6 @@ import { UUID_RE } from "@/lib/storefront";
 type Result = { error: string } | { ok: true; id: string };
 
 function dbErrorMessage(error: PostgrestError) {
-  // Raised by the enforce_campaign_limit trigger, e.g. "Active campaign limit reached for your plan (5)".
-  if (error.code === "P0001") return `${error.message}. Pause another campaign first, or upgrade to Creator Plus.`;
   if (error.code === "23505") return "Another active campaign is already watching this post. Pause it first or pick a different post.";
   console.error("campaign write failed", error);
   return "Couldn't save the campaign. Please try again.";

@@ -35,8 +35,8 @@ node --env-file=.env.local scripts/create-admin.mjs <email> <password> "<name>"
 - **Admin sign-in:** email and password, and the account must be in `admin_users`. Two-factor authentication was removed on request; consider re-adding it before launch.
 - **Trial and campaign limits:**
   - The 30-day trial starts when the email is verified.
-  - Active campaigns are capped at 5 (Creator) or 50 (Creator Plus).
-  - Both are enforced in the database.
+  - Active campaigns are unlimited on both plans (the old 5/50 cap was removed in `20261112000300_unlimited_campaigns.sql`).
+  - The trial is enforced in the database.
 - **Server-only tables:** `instagram_tokens` and `webhook_events`. `audit_logs` is append-only.
 - **Storefront is live:**
   - The editor (`/storefront`) saves profile, socials, theme, the 3 featured links and the default fourth link in one atomic call (`save_storefront`).
@@ -47,7 +47,7 @@ node --env-file=.env.local scripts/create-admin.mjs <email> <password> "<name>"
   - You can create, edit, pause/resume and delete campaigns. Per-campaign stats come from `campaign_stats()`, and the automation log comes from `comment_events`.
   - Post details are looked up on the server (`src/lib/instagram.ts`), never trusted from the browser.
   - Until Meta is connected, development shows sample posts. Production shows none.
-  - The database enforces two rules: one active campaign per post per creator, and the plan's active-campaign limit.
+  - The database enforces one active campaign per post per creator.
 - **Dashboard and analytics are live:**
   - The date range comes from the URL (`?range=today|7d|30d|month|prev_month|custom&from&to`) and is resolved to IST calendar days in `src/lib/date-range.ts`.
   - Data comes from the database functions `creator_daily`, `campaign_stats(range)`, `keyword_stats` and `link_stats`.

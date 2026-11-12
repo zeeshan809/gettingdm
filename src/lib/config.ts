@@ -9,12 +9,27 @@ export const TRIAL_DAYS = 30;
 
 export type PlanId = "creator" | "creator_plus";
 
+// Features marked `soon` are on the roadmap and shown with a "Coming soon" badge.
+// Only list a feature as included once it actually works.
+type PlanFeature = { label: string; value: string; soon?: boolean };
+
+const COMING_SOON: PlanFeature[] = [
+  "Story reply",
+  "Follow before DM",
+  "Delay message",
+  "Collect email",
+  "Lead generation",
+  "AI assistant",
+  "Re-engage past leads",
+  "Rewind (DM past commenters)",
+].map((label) => ({ label, value: "Included", soon: true }));
+
 export const PLANS: {
   id: PlanId;
   name: string;
   price: number;
   tagline: string;
-  features: { label: string; value: string }[];
+  features: PlanFeature[];
 }[] = [
   {
     id: "creator",
@@ -24,13 +39,17 @@ export const PLANS: {
     features: [
       { label: "Instagram connection", value: "Included" },
       { label: "Comment-to-DM automation", value: "Included" },
+      { label: "Instant DM within seconds", value: "Included" },
+      { label: "Unlimited DMs and auto replies", value: "Included" },
+      { label: "Unlimited contacts", value: "Included" },
       { label: "Mini-storefront", value: "Included" },
       { label: "Three global links", value: "Included" },
       { label: "Campaign-specific fourth link", value: "Included" },
       { label: "Basic analytics", value: "Included" },
       { label: "Advanced analytics", value: "Limited" },
-      { label: "Active campaigns", value: "Up to 5" },
-      { label: "Support", value: "Standard" },
+      { label: "Active campaigns", value: "Unlimited" },
+      { label: "Support", value: "Priority" },
+      ...COMING_SOON,
     ],
   },
   {
@@ -41,13 +60,17 @@ export const PLANS: {
     features: [
       { label: "Instagram connection", value: "Included" },
       { label: "Comment-to-DM automation", value: "Included" },
+      { label: "Instant DM within seconds", value: "Included" },
+      { label: "Unlimited DMs and auto replies", value: "Included" },
+      { label: "Unlimited contacts", value: "Included" },
       { label: "Mini-storefront", value: "Included" },
       { label: "Three global links", value: "Included" },
       { label: "Campaign-specific fourth link", value: "Included" },
       { label: "Basic analytics", value: "Included" },
       { label: "Advanced analytics", value: "Included" },
-      { label: "Active campaigns", value: "Up to 50" },
+      { label: "Active campaigns", value: "Unlimited" },
       { label: "Support", value: "Priority" },
+      ...COMING_SOON,
     ],
   },
 ];
