@@ -74,7 +74,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         <Card>
           <CardHeader title="Storefront" description="Visits and link clicks" />
           <div className="p-4">
-            <TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#0ea5e9" }, { key: "clicks", label: "Clicks", color: "#db2777" }]} />
+            <TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#5f98e2" }, { key: "clicks", label: "Clicks", color: "#e47a54" }]} />
           </div>
         </Card>
       </div>

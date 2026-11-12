@@ -39,7 +39,7 @@ export default function AdminAnalyticsPage() {
         </Card>
         <Card>
           <CardHeader title="Storefront traffic" />
-          <div className="p-4"><TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#0ea5e9" }]} /></div>
+          <div className="p-4"><TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#5f98e2" }]} /></div>
         </Card>
         <Card>
           <CardHeader title="Subscription status mix" />
@@ -62,7 +62,7 @@ export default function AdminAnalyticsPage() {
                 {[c.m1, c.m2, c.m3, c.m4].map((v, i) => (
                   <Td key={i} className="text-center">
                     {v === undefined ? <span className="text-zinc-300">—</span> : (
-                      <span className="inline-block w-12 rounded py-0.5 text-xs font-medium" style={{ background: `rgba(124, 58, 237, ${v / 120})`, color: v > 70 ? "white" : "#3f3f46" }}>{v}%</span>
+                      <span className="inline-block w-12 rounded py-0.5 text-xs font-medium" style={{ background: `rgba(63, 121, 201, ${v / 120})`, color: v > 70 ? "white" : "#3f3f46" }}>{v}%</span>
                     )}
                   </Td>
                 ))}

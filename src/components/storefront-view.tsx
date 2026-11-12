@@ -52,7 +52,7 @@ export function StorefrontView({
     <div className={cn(compact ? "min-h-full" : "min-h-screen", dark ? "bg-zinc-950 text-white" : "bg-zinc-50 text-zinc-900")}>
       <div
         className={cn("w-full bg-cover bg-center", compact ? "h-24" : "h-36 sm:h-44")}
-        style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : { background: `linear-gradient(135deg, ${brand}, #db2777 60%, #f97316)` }}
+        style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : { background: `linear-gradient(135deg, ${brand}, #8db9f0 55%, #f5b69e)` }}
       />
       <div className={cn("mx-auto max-w-md px-5 pb-10", compact ? "-mt-10" : "-mt-14")}>
         <div className="flex flex-col items-center text-center">

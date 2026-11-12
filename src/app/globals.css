@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
+/*
+  Palette
+  Powder Blue          #8DB9F0  (primary)
+  Soft Lavender White  #E9E8F8  (background / surfaces)
+  Warm Sunset Peach    #F5B69E  (accent)
+*/
 :root {
-  --background: #f7f7f9;
-  --foreground: #18181b;
-  --brand: #7c3aed;
+  --background: #e9e8f8;
+  --foreground: #1c1b2e;
+  --brand: #3f79c9;
 }
 
 @theme inline {
@@ -14,11 +20,82 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Remap Tailwind palettes used across the app to the new colours. */
+@theme {
+  /* violet -> Powder Blue (400 is the exact reference colour; 600+ are darker so white text stays readable) */
+  --color-violet-50: #f2f7fe;
+  --color-violet-100: #e3eefc;
+  --color-violet-200: #c9ddf8;
+  --color-violet-300: #aacbf4;
+  --color-violet-400: #8db9f0;
+  --color-violet-500: #5f98e2;
+  --color-violet-600: #3f79c9;
+  --color-violet-700: #3062a8;
+  --color-violet-800: #294f87;
+  --color-violet-900: #24426e;
+  --color-violet-950: #172a47;
+
+  /* pink + fuchsia -> Warm Sunset Peach (300 is the exact reference colour) */
+  --color-pink-50: #fef5f1;
+  --color-pink-100: #fde9e1;
+  --color-pink-200: #fad3c4;
+  --color-pink-300: #f5b69e;
+  --color-pink-400: #ef9877;
+  --color-pink-500: #e47a54;
+  --color-pink-600: #cc5f3a;
+  --color-pink-700: #a84b2e;
+  --color-pink-800: #873e29;
+  --color-pink-900: #6e3525;
+  --color-pink-950: #3b1a11;
+
+  --color-fuchsia-50: #fef5f1;
+  --color-fuchsia-100: #fde9e1;
+  --color-fuchsia-200: #fad3c4;
+  --color-fuchsia-300: #f5b69e;
+  --color-fuchsia-400: #ef9877;
+  --color-fuchsia-500: #e47a54;
+  --color-fuchsia-600: #cc5f3a;
+  --color-fuchsia-700: #a84b2e;
+  --color-fuchsia-800: #873e29;
+  --color-fuchsia-900: #6e3525;
+  --color-fuchsia-950: #3b1a11;
+
+  /* light greys get a lavender tint so they sit well on the lavender background */
+  --color-zinc-50: #f6f5fc;
+  --color-zinc-100: #e9e8f8;
+  --color-zinc-200: #dad9ec;
+  --color-zinc-300: #c4c3da;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
 }
 
 .brand-gradient {
-  background-image: linear-gradient(135deg, #7c3aed 0%, #db2777 55%, #f97316 100%);
+  background-image: linear-gradient(135deg, #3f79c9 0%, #5f98e2 50%, #e47a54 100%);
+}
+
+/* Landing page motion */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 35s linear infinite; }
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in { opacity: 0; animation: pop-in 0.5s ease-out forwards; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee, .animate-float { animation: none; }
+  .pop-in { animation: none; opacity: 1; }
 }

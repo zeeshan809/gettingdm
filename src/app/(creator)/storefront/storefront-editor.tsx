@@ -13,7 +13,7 @@ import {
 } from "@/lib/storefront";
 import { saveStorefront } from "./actions";
 
-const BRAND_SWATCHES = ["#7c3aed", "#db2777", "#2563eb", "#059669", "#ea580c", "#18181b"];
+const BRAND_SWATCHES = ["#3f79c9", "#e47a54", "#2563eb", "#059669", "#ea580c", "#18181b"];
 
 type Tab = "links" | "profile" | "appearance";
 

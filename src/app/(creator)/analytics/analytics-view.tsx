@@ -104,7 +104,7 @@ export function AnalyticsView({
           </div>
           <Card>
             <CardHeader title="Traffic trend" />
-            <div className="p-4"><TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#0ea5e9" }, { key: "uniques", label: "Unique visitors", color: "#7c3aed" }, { key: "clicks", label: "Link clicks", color: "#db2777" }]} /></div>
+            <div className="p-4"><TrendChart data={rows} series={[{ key: "visits", label: "Visits", color: "#5f98e2" }, { key: "uniques", label: "Unique visitors", color: "#3f79c9" }, { key: "clicks", label: "Link clicks", color: "#e47a54" }]} /></div>
           </Card>
           <div className="grid gap-6 xl:grid-cols-3">
             <Card className="xl:col-span-2">

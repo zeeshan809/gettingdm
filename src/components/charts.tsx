@@ -5,7 +5,7 @@ import {
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 
-export const CHART_COLORS = ["#7c3aed", "#db2777", "#0ea5e9", "#f59e0b", "#10b981", "#64748b"];
+export const CHART_COLORS = ["#3f79c9", "#e47a54", "#5f98e2", "#f59e0b", "#10b981", "#64748b"];
 
 type Series = { key: string; label: string; color?: string };
 
@@ -13,7 +13,7 @@ const shortDate = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
 
 const axisProps = { tick: { fontSize: 11, fill: "#71717a" }, tickLine: false, axisLine: false } as const;
-const tooltipStyle = { contentStyle: { borderRadius: 8, border: "1px solid #e4e4e7", fontSize: 12 } };
+const tooltipStyle = { contentStyle: { borderRadius: 8, border: "1px solid #dad9ec", fontSize: 12 } };
 
 export function TrendChart<T extends { date: string }>({ data, series, height = 260, stacked }: { data: T[]; series: Series[]; height?: number; stacked?: boolean }) {
   return (
@@ -27,7 +27,7 @@ export function TrendChart<T extends { date: string }>({ data, series, height = 
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#e9e8f8" vertical={false} />
         <XAxis dataKey="date" tickFormatter={shortDate} minTickGap={24} {...axisProps} />
         <YAxis {...axisProps} width={48} />
         <Tooltip labelFormatter={(l) => shortDate(String(l))} {...tooltipStyle} />
@@ -53,7 +53,7 @@ export function LineTrend<T extends { date: string }>({ data, series, height = 2
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#e9e8f8" vertical={false} />
         <XAxis dataKey="date" tickFormatter={shortDate} minTickGap={24} {...axisProps} />
         <YAxis {...axisProps} width={56} tickFormatter={valueFormatter} />
         <Tooltip labelFormatter={(l) => shortDate(String(l))} formatter={(v) => (valueFormatter ? valueFormatter(Number(v)) : v)} {...tooltipStyle} />
@@ -69,7 +69,7 @@ export function BarList<T extends Record<string, unknown>>({ data, xKey, series,
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 8, right: 8, left: horizontal ? 8 : -12, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" horizontal={!horizontal} vertical={!!horizontal} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#e9e8f8" horizontal={!horizontal} vertical={!!horizontal} />
         {horizontal ? (
           <>
             <XAxis type="number" {...axisProps} />
@@ -81,7 +81,7 @@ export function BarList<T extends Record<string, unknown>>({ data, xKey, series,
             <YAxis {...axisProps} width={48} />
           </>
         )}
-        <Tooltip cursor={{ fill: "#f4f4f5" }} {...tooltipStyle} />
+        <Tooltip cursor={{ fill: "#e9e8f8" }} {...tooltipStyle} />
         {series.length > 1 && <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />}
         {series.map((s, i) => (
           <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color ?? CHART_COLORS[i]} radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={28} />

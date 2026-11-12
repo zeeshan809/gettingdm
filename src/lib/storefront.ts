@@ -28,7 +28,7 @@ export type StorefrontInput = {
 
 export const SOCIAL_PLATFORMS = ["Instagram", "YouTube", "LinkedIn", "X", "Telegram", "WhatsApp", "Website"];
 export const BIO_MAX = 160;
-export const DEFAULT_THEME: Theme = { brand: "#7c3aed", button: "pill", style: "light" };
+export const DEFAULT_THEME: Theme = { brand: "#3f79c9", button: "pill", style: "light" };
 export const USERNAME_RE = /^[a-z0-9_.]{3,30}$/;
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
