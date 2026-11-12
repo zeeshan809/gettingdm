@@ -255,7 +255,7 @@ export default function LandingPage() {
                     <span className="text-5xl font-bold tracking-tight">₹{plan.price}</span>
                     <span className={featured ? "text-violet-200" : "text-zinc-500"}>/month</span>
                   </p>
-                  <ul className="mt-7 space-y-3 text-sm">
+                  <ul className="mb-8 mt-7 space-y-3 text-sm">
                     {plan.features.filter((f) => !f.soon).map((f) => (
                       <li key={f.label} className="flex items-start gap-2.5">
                         <Check className={featured ? "mt-0.5 h-4 w-4 shrink-0 text-pink-300" : "mt-0.5 h-4 w-4 shrink-0 text-violet-600"} />
@@ -266,12 +266,14 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
+{plan.features.some((f) => f.soon) && (<>
                   <p className={featured ? "mt-6 text-xs font-semibold uppercase tracking-wide text-violet-300" : "mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-400"}>Coming soon</p>
                   <ul className="mb-8 mt-3 flex flex-wrap gap-2">
                     {plan.features.filter((f) => f.soon).map((f) => (
                       <li key={f.label} className={featured ? "rounded-full bg-white/10 px-2.5 py-1 text-xs text-violet-100" : "rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600"}>{f.label}</li>
                     ))}
                   </ul>
+                  </>)}
                   <Link
                     href="/register"
                     className={featured

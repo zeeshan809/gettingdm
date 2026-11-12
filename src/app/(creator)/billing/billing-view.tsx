@@ -172,7 +172,9 @@ export function BillingView({ sub, payments, activeCampaigns, paymentsReady }: {
                 {p.features.filter((f) => !f.soon).map((f) => (
                   <li key={f.label} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" /><span>{f.label}{f.value !== "Included" && <span className="text-zinc-500"> · {f.value}</span>}</span></li>
                 ))}
-                <li className="flex gap-2 text-zinc-500"><Check className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300" />Coming soon: {p.features.filter((f) => f.soon).map((f) => f.label).join(", ")}</li>
+                {p.features.some((f) => f.soon) && (
+                  <li className="flex gap-2 text-zinc-500"><Check className="mt-0.5 h-4 w-4 shrink-0 text-zinc-300" />Coming soon: {p.features.filter((f) => f.soon).map((f) => f.label).join(", ")}</li>
+                )}
               </ul>
               <Button className="mt-5 w-full" variant={featured ? "primary" : "secondary"} disabled={isCurrent || busy || !paymentsReady} onClick={() => setCheckout(p.id)}>
                 {isCurrent ? "Your current plan" : paid || sub?.hasMandate ? `Switch to ${p.name}` : `Subscribe to ${p.name}`}
