@@ -4,6 +4,7 @@ import {
   MousePointerClick, Plug, Rocket, Send, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, Zap,
 } from "lucide-react";
 import { APP_DOMAIN, APP_NAME, PLANS, TRIAL_DAYS } from "@/lib/config";
+import { Logo } from "@/components/logo";
 
 const primaryCta =
   "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-violet-600 px-6 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700";
@@ -59,10 +60,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-lg text-white"><Zap className="h-4 w-4" /></span>
-            <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
-          </Link>
+          <Link href="/" aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-8 w-auto" /></Link>
           <nav className="hidden items-center gap-7 text-sm text-zinc-600 md:flex">
             <a href="#features" className="hover:text-zinc-900">Features</a>
             <a href="#how" className="hover:text-zinc-900">How it works</a>
@@ -298,10 +296,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/70 bg-white/60">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
           <div>
-            <Link href="/" className="flex items-center gap-2">
-              <span className="brand-gradient flex h-8 w-8 items-center justify-center rounded-lg text-white"><Zap className="h-4 w-4" /></span>
-              <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
-            </Link>
+            <Link href="/" aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-8 w-auto" /></Link>
             <p className="mt-3 text-sm text-zinc-500">Instagram comment-to-DM automation and a storefront for every creator.</p>
           </div>
           <FooterCol title="Product" links={[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["Demo storefront", "/zeeshan?campaign=cmp_python"]]} />

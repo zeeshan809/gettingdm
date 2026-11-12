@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
 import { Avatar, Badge, cn } from "./ui";
+import { Logo } from "./logo";
 import { ToastProvider } from "./interactive";
 
 export type ShellUser = {
@@ -88,10 +89,7 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
   const sidebar = (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2 px-5">
-        <span className="brand-gradient flex h-7 w-7 items-center justify-center rounded-lg text-white">
-          <Zap className="h-4 w-4" />
-        </span>
-        <span className="font-semibold tracking-tight">{APP_NAME}</span>
+        <Link href={portal === "creator" ? "/dashboard" : "/admin"} aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-7 w-auto" /></Link>
         {portal === "admin" && <Badge tone="red" className="ml-auto">Admin</Badge>}
       </div>
 

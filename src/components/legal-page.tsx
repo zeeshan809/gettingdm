@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import { Logo } from "@/components/logo";
 import type { ReactNode } from "react";
 import { APP_NAME, LEGAL_UPDATED } from "@/lib/config";
 
@@ -9,10 +9,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
     <div className="min-h-screen bg-white">
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="brand-gradient flex h-7 w-7 items-center justify-center rounded-lg text-white"><Zap className="h-4 w-4" /></span>
-            <span className="font-semibold tracking-tight">{APP_NAME}</span>
-          </Link>
+          <Link href="/" aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-7 w-auto" /></Link>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
