@@ -177,6 +177,38 @@ export async function followsAccount(igsid: string, token: string) {
   return res.is_user_follow_business === true;
 }
 
+// Reading DM threads. Meta doesn't send us message webhooks for every account, so the
+// minute worker reads threads to see who tapped "I've followed".
+type Conversation = { id: string; updated_time: string; participants: { data: { id: string; username?: string }[] } };
+export type ThreadMessage = { id: string; created_time: string; from?: { id: string }; message?: string };
+
+// Meta returns "+0000"-style offsets; normalise so Date parses them everywhere.
+export const metaTime = (t: string) => new Date(t.replace(/([+-]\d\d)(\d\d)$/, "$1:$2")).getTime();
+
+export async function recentConversations(igUserId: string, token: string, limit = 50) {
+  const res = await graph<{ data: Conversation[] }>(`/${igUserId}/conversations`, {
+    platform: "instagram",
+    fields: "participants,updated_time",
+    limit: String(limit),
+    access_token: token,
+  });
+  // participant id (IGSID) -> thread
+  const byPerson = new Map<string, { id: string; updated: number }>();
+  for (const c of res.data ?? []) {
+    const other = c.participants?.data?.find((p) => p.id !== igUserId);
+    if (other) byPerson.set(other.id, { id: c.id, updated: metaTime(c.updated_time) });
+  }
+  return byPerson;
+}
+
+export async function conversationMessages(conversationId: string, token: string, limit = 10) {
+  const res = await graph<{ messages?: { data: ThreadMessage[] } }>(`/${conversationId}`, {
+    fields: `messages.limit(${limit}){id,from,created_time,message}`,
+    access_token: token,
+  });
+  return res.messages?.data ?? [];
+}
+
 export async function unsubscribeInstagram(igUserId: string, token: string) {
   await graph(`/${igUserId}/subscribed_apps`, { access_token: token }, { method: "DELETE" });
 }

@@ -1,7 +1,9 @@
 import "server-only";
 import { matchKeyword, type MatchRule } from "./keywords";
 import { accessToken, markConnectionProblem } from "./instagram";
-import { followsAccount, MetaError, sendLinkButton, sendMessage, sendPrivateReply, type QuickReply } from "./meta";
+import {
+  conversationMessages, followsAccount, MetaError, metaTime, recentConversations, sendLinkButton, sendMessage, sendPrivateReply, type QuickReply,
+} from "./meta";
 import { dmLinkFor, hasStorefront } from "./plan";
 import { createServiceClient } from "./supabase/server";
 
@@ -26,6 +28,7 @@ const MAX_ATTEMPTS = 4;
 const MAX_FOLLOW_PROMPTS = 5;
 const REPLY_WINDOW_MS = 7 * 86_400_000; // Instagram allows a private reply within 7 days
 const LINK_PAYLOAD = "GDM_LINK:";
+const FOLLOWED_LABEL = "I've followed ✅";
 const LIVE_PLAN = ["trial", "active", "payment_pending", "past_due"];
 
 const svc = () => createServiceClient();
@@ -73,7 +76,9 @@ export async function runDueWork() {
     .limit(25);
   for (const ev of missed ?? []) await processMetaPayload(ev.id, ev.payload as MetaPayload, ev.received_at);
 
-  return { delivered: due?.length ?? 0, recovered: missed?.length ?? 0 };
+  const followReplies = await pollFollowGates();
+
+  return { delivered: due?.length ?? 0, recovered: missed?.length ?? 0, followReplies };
 }
 
 // ---------- context ----------
@@ -181,7 +186,7 @@ export async function deliver(eventId: string) {
   const db = svc();
   const { data: ev } = await db
     .from("comment_events")
-    .select("id, creator_id, campaign_id, ig_comment_id, commenter_username, received_at, attempts, campaigns (message, cta_label, follow_required, active)")
+    .select("id, creator_id, campaign_id, ig_comment_id, commenter_ig_id, commenter_username, received_at, attempts, campaigns (message, cta_label, follow_required, active)")
     .eq("id", eventId)
     .single();
   if (!ev || !ev.campaigns) return setStatus(eventId, { status: "skipped", error: "Campaign deleted", processed_at: nowIso() });
@@ -200,14 +205,20 @@ export async function deliver(eventId: string) {
   const cta = c.cta_label || "Get it here";
 
   try {
-    if (c.follow_required) {
-      const prompt = `${text}\n\nReply to this message and I'll send your link 👇`;
-      const res = await privateReplyWithFallback(account.igUserId, token, ev.ig_comment_id, prompt, [{ title: cta, payload: `${LINK_PAYLOAD}${ev.id}` }]);
-      await setStatus(eventId, { status: "awaiting_follow", commenter_ig_id: res.recipient_id, attempts: 0, error: null, processed_at: nowIso() });
-    } else {
-      const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
+    const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
+    // Follow before DM: Instagram often won't say whether someone follows until they've
+    // interacted with the DM, so null means "unknown" and they get a tap-to-unlock prompt.
+    const follows = c.follow_required ? await followStatus(ev.commenter_ig_id, token) : true;
+    if (follows) {
       const res = await linkMessage(account.igUserId, token, { comment_id: ev.ig_comment_id }, text, cta, link);
       await setStatus(eventId, { status: "sent", commenter_ig_id: res.recipient_id, sent_at: nowIso(), error: null, processed_at: nowIso() });
+    } else {
+      const prompt = follows === false
+        ? `${text}\n\nFollow @${account.handle} first, then tap "${FOLLOWED_LABEL}" below and I'll send your link 👇`
+        : `${text}\n\nTap below to get your link 👇`;
+      const button = follows === false ? FOLLOWED_LABEL : cta;
+      const res = await privateReplyWithFallback(account.igUserId, token, ev.ig_comment_id, prompt, [{ title: button, payload: `${LINK_PAYLOAD}${ev.id}` }]);
+      await setStatus(eventId, { status: "awaiting_follow", commenter_ig_id: res.recipient_id, attempts: 0, error: null, processed_at: nowIso() });
     }
   } catch (e) {
     await handleSendError(eventId, ev.creator_id, ev.attempts, e);
@@ -256,42 +267,28 @@ async function handleSendError(eventId: string, creatorId: string, attempts: num
 
 // ---------- replies (Follow before DM) ----------
 
-async function handleMessage(igUserId: string, m: MessagingEvent) {
-  const sender = m.sender?.id;
-  if (!sender || sender === igUserId || m.message?.is_echo) return;
-  if (!m.message && !m.postback) return;
-
-  const account = await accountFor(igUserId);
-  if (!account) return;
-
-  // The tapped button names the exact comment; any other reply uses the latest open one.
-  const payload = m.message?.quick_reply?.payload ?? m.postback?.payload ?? "";
-  const db = svc();
-  let query = db
-    .from("comment_events")
-    .select("id, campaign_id, attempts, campaigns (cta_label, active)")
-    .eq("creator_id", account.creatorId)
-    .eq("status", "awaiting_follow");
-  query = payload.startsWith(LINK_PAYLOAD) ? query.eq("id", payload.slice(LINK_PAYLOAD.length)) : query.eq("commenter_ig_id", sender);
-  const { data: ev } = await query.order("received_at", { ascending: false }).limit(1).maybeSingle();
-  if (!ev || !ev.campaigns) return;
-  if (!(await claim(ev.id, ["awaiting_follow"]))) return;
-
-  const token = await accessToken(account.creatorId);
-  if (!token) return setStatus(ev.id, { status: "awaiting_follow" });
-
+// true / false when Instagram says, null when it won't (no consent yet) or the check fails.
+async function followStatus(igsid: string | null, token: string): Promise<boolean | null> {
+  if (!igsid) return null;
   try {
-    let follows = true;
-    try {
-      follows = await followsAccount(sender, token);
-    } catch (e) {
-      // If Instagram won't tell us, don't trap the person: send the link.
-      console.error("follow check failed", e);
-    }
+    return await followsAccount(igsid, token);
+  } catch {
+    return null;
+  }
+}
 
-    if (follows) {
+type GateRow = { id: string; campaign_id: string | null; attempts: number; campaigns: { cta_label: string | null; active: boolean } | null };
+type Account = NonNullable<Awaited<ReturnType<typeof accountFor>>>;
+
+// The person tapped the button or replied. The row is already claimed (status processing).
+// Following -> send the link button. Not following -> ask again, up to MAX_FOLLOW_PROMPTS.
+async function resolveFollowGate(ev: GateRow, account: Account, token: string, sender: string) {
+  try {
+    const follows = await followStatus(sender, token);
+    // If Instagram still won't say, don't trap the person: send the link.
+    if (follows !== false) {
       const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
-      await linkMessage(account.igUserId, token, { id: sender }, "Thanks for following! 🙌", ev.campaigns.cta_label || "Get it here", link);
+      await linkMessage(account.igUserId, token, { id: sender }, "Thanks for following! 🙌 Here's your link:", ev.campaigns?.cta_label || "Get it here", link);
       return setStatus(ev.id, { status: "sent", sent_at: nowIso(), error: null, processed_at: nowIso() });
     }
 
@@ -303,13 +300,82 @@ async function handleMessage(igUserId: string, m: MessagingEvent) {
       account.igUserId,
       token,
       sender,
-      `Almost there! Follow @${account.handle} first, then tap below and I'll send your link 🙌`,
-      [{ title: "I followed ✅", payload: `${LINK_PAYLOAD}${ev.id}` }],
+      `You're not following @${account.handle} yet 🙏\n\nFollow first, then tap "${FOLLOWED_LABEL}" below and I'll send your link right away.`,
+      [{ title: FOLLOWED_LABEL, payload: `${LINK_PAYLOAD}${ev.id}` }],
     );
-    await setStatus(ev.id, { status: "awaiting_follow", attempts: prompts, error: null });
+    // processed_at marks the last prompt; only replies after it count as a new tap.
+    await setStatus(ev.id, { status: "awaiting_follow", attempts: prompts, error: null, processed_at: nowIso() });
   } catch (e) {
     console.error("follow-gate reply failed", e);
     if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) await markConnectionProblem(account.creatorId, e);
     await setStatus(ev.id, { status: "awaiting_follow", error: e instanceof Error ? e.message.slice(0, 500) : "Reply failed" });
   }
+}
+
+// Webhook path: Meta tells us about the reply directly.
+async function handleMessage(igUserId: string, m: MessagingEvent) {
+  const sender = m.sender?.id;
+  if (!sender || sender === igUserId || m.message?.is_echo) return;
+  if (!m.message && !m.postback) return;
+
+  const account = await accountFor(igUserId);
+  if (!account) return;
+
+  // The tapped button names the exact comment; any other reply uses the latest open one.
+  const payload = m.message?.quick_reply?.payload ?? m.postback?.payload ?? "";
+  let query = svc()
+    .from("comment_events")
+    .select("id, campaign_id, attempts, campaigns (cta_label, active)")
+    .eq("creator_id", account.creatorId)
+    .eq("status", "awaiting_follow");
+  query = payload.startsWith(LINK_PAYLOAD) ? query.eq("id", payload.slice(LINK_PAYLOAD.length)) : query.eq("commenter_ig_id", sender);
+  const { data: ev } = await query.order("received_at", { ascending: false }).limit(1).maybeSingle();
+  if (!ev) return;
+  if (!(await claim(ev.id, ["awaiting_follow"]))) return;
+
+  const token = await accessToken(account.creatorId);
+  if (!token) return setStatus(ev.id, { status: "awaiting_follow" });
+  await resolveFollowGate(ev, account, token, sender);
+}
+
+// Polling path (every minute): read DM threads for people waiting on Follow before DM,
+// since Meta doesn't send message webhooks for every account.
+async function pollFollowGates() {
+  const db = svc();
+  const { data: rows } = await db
+    .from("comment_events")
+    .select("id, creator_id, campaign_id, commenter_ig_id, attempts, processed_at, campaigns (cta_label, active)")
+    .eq("status", "awaiting_follow")
+    .gte("received_at", new Date(Date.now() - REPLY_WINDOW_MS).toISOString())
+    .not("commenter_ig_id", "is", null)
+    .limit(200);
+  if (!rows?.length) return 0;
+
+  let handled = 0;
+  const byCreator = new Map<string, typeof rows>();
+  for (const r of rows) byCreator.set(r.creator_id, [...(byCreator.get(r.creator_id) ?? []), r]);
+  for (const [creatorId, waiting] of byCreator) {
+    try {
+      const { data: acc } = await db.from("instagram_accounts").select("ig_user_id").eq("creator_id", creatorId).maybeSingle();
+      const account = acc ? await accountFor(acc.ig_user_id) : null;
+      const token = account ? await accessToken(creatorId) : null;
+      if (!account || !token) continue;
+
+      const threads = await recentConversations(account.igUserId, token);
+      for (const row of waiting) {
+        const thread = threads.get(row.commenter_ig_id!);
+        const lastPrompt = new Date(row.processed_at ?? 0).getTime();
+        if (!thread || thread.updated <= lastPrompt) continue;
+        const messages = await conversationMessages(thread.id, token);
+        const replied = messages.some((m) => m.from?.id === row.commenter_ig_id && metaTime(m.created_time) > lastPrompt);
+        if (!replied || !(await claim(row.id, ["awaiting_follow"]))) continue;
+        await resolveFollowGate(row, account, token, row.commenter_ig_id!);
+        handled++;
+      }
+    } catch (e) {
+      console.error("follow-gate polling failed", e);
+      if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) await markConnectionProblem(creatorId, e);
+    }
+  }
+  return handled;
 }

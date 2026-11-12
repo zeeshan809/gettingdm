@@ -259,14 +259,16 @@ export function CampaignForm({
             <div className="space-y-2 bg-zinc-50 p-5">
               <div className="ml-6 whitespace-pre-line rounded-2xl rounded-tr-sm bg-violet-600 p-3 text-sm text-white">
                 {preview}
-                {form.followRequired && <span className="mt-2 block text-xs opacity-90">Reply to this message and I&apos;ll send your link 👇</span>}
+                {form.followRequired && <span className="mt-2 block text-xs opacity-90">Tap below to get your link 👇</span>}
               </div>
               <div className="ml-6 rounded-xl border border-zinc-200 bg-white py-2 text-center text-sm font-medium text-violet-700">{(form.cta || "Open the link").slice(0, 20)}</div>
               {!form.followRequired && (
                 <p className="ml-6 pt-1 text-xs text-zinc-500" title={storefrontUrl}>The button opens {storefront ? "your storefront" : "the campaign link"}. Button text shows up to 20 characters.</p>
               )}
               {form.followRequired && (
-                <p className="ml-6 pt-1 text-xs text-zinc-500">They reply, we check they follow you, then send {storefront ? "your storefront link" : "the campaign link"}.</p>
+                <p className="ml-6 pt-1 text-xs text-zinc-500">
+                  Followers get the link button straight away. Anyone else is asked to follow you and tap &ldquo;I&apos;ve followed ✅&rdquo;; we check again each time they tap, then send {storefront ? "your storefront link" : "the campaign link"}.
+                </p>
               )}
               {form.delaySeconds > 0 && (
                 <p className="ml-6 text-xs text-zinc-500">Sent {DELAY_OPTIONS.find((d) => d.seconds === form.delaySeconds)?.label.toLowerCase()}.</p>
