@@ -255,8 +255,23 @@ export default function LandingPage() {
                     <span className="text-5xl font-bold tracking-tight">₹{plan.price}</span>
                     <span className={featured ? "text-violet-200" : "text-zinc-500"}>/month</span>
                   </p>
-                  <ul className="mb-8 mt-7 space-y-3 text-sm">
-                    {plan.features.filter((f) => !f.soon).map((f) => (
+                  {plan.features.some((f) => f.highlight) && (
+                    <div className={featured ? "mt-7 rounded-2xl bg-white/10 p-4 ring-1 ring-pink-300/40" : "mt-7 rounded-2xl bg-pink-50 p-4 ring-1 ring-pink-200"}>
+                      <p className={featured ? "flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pink-300" : "flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-pink-600"}>
+                        <Sparkles className="h-3.5 w-3.5" /> Only on {plan.name}
+                      </p>
+                      <ul className="mt-3 space-y-2.5 text-[15px] font-semibold">
+                        {plan.features.filter((f) => f.highlight).map((f) => (
+                          <li key={f.label} className="flex items-start gap-2.5">
+                            <Store className={featured ? "mt-0.5 h-4 w-4 shrink-0 text-pink-300" : "mt-0.5 h-4 w-4 shrink-0 text-pink-600"} />
+                            {f.label}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <ul className="mb-8 mt-6 space-y-3 text-sm">
+                    {plan.features.filter((f) => !f.soon && !f.highlight).map((f) => (
                       <li key={f.label} className="flex items-start gap-2.5">
                         <Check className={featured ? "mt-0.5 h-4 w-4 shrink-0 text-pink-300" : "mt-0.5 h-4 w-4 shrink-0 text-violet-600"} />
                         <span>

@@ -169,7 +169,10 @@ export function BillingView({ sub, payments, activeCampaigns, paymentsReady }: {
               <p className="mt-1 text-sm text-zinc-500">{p.tagline}</p>
               <p className="mt-3"><span className="text-3xl font-semibold">₹{p.price}</span><span className="text-sm text-zinc-500">/month</span></p>
               <ul className="mt-4 flex-1 space-y-2 text-sm">
-                {p.features.filter((f) => !f.soon).map((f) => (
+                {p.features.filter((f) => f.highlight).map((f) => (
+                  <li key={f.label} className="flex gap-2 font-semibold text-pink-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-pink-600" />{f.label}</li>
+                ))}
+                {p.features.filter((f) => !f.soon && !f.highlight).map((f) => (
                   <li key={f.label} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" /><span>{f.label}{f.value !== "Included" && <span className="text-zinc-500"> · {f.value}</span>}</span></li>
                 ))}
                 {p.features.some((f) => f.soon) && (
