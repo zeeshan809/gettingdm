@@ -1,7 +1,7 @@
 import "server-only";
 import { matchKeyword, type MatchRule } from "./keywords";
 import { accessToken, markConnectionProblem } from "./instagram";
-import { followsAccount, MetaError, sendMessage, sendPrivateReply, type QuickReply } from "./meta";
+import { followsAccount, MetaError, sendLinkButton, sendMessage, sendPrivateReply, type QuickReply } from "./meta";
 import { dmLinkFor, hasStorefront } from "./plan";
 import { createServiceClient } from "./supabase/server";
 
@@ -206,11 +206,24 @@ export async function deliver(eventId: string) {
       await setStatus(eventId, { status: "awaiting_follow", commenter_ig_id: res.recipient_id, attempts: 0, error: null, processed_at: nowIso() });
     } else {
       const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
-      const res = await sendPrivateReply(account.igUserId, token, ev.ig_comment_id, `${text}\n\n${cta}: ${link}`);
+      const res = await linkMessage(account.igUserId, token, { comment_id: ev.ig_comment_id }, text, cta, link);
       await setStatus(eventId, { status: "sent", commenter_ig_id: res.recipient_id, sent_at: nowIso(), error: null, processed_at: nowIso() });
     }
   } catch (e) {
     await handleSendError(eventId, ev.creator_id, ev.attempts, e);
+  }
+}
+
+// The link goes out as a tappable button. If Instagram won't take a button here,
+// send the same message with the link written out, so the person still gets it.
+async function linkMessage(igUserId: string, token: string, to: { comment_id: string } | { id: string }, text: string, cta: string, link: string) {
+  try {
+    return await sendLinkButton(igUserId, token, to, text, { title: cta, url: link });
+  } catch (e) {
+    if (!(e instanceof MetaError) || e.tokenInvalid || e.permissionMissing) throw e;
+    console.error("link button rejected, sending text link", e.message);
+    const body = `${text}\n\n${cta}: ${link}`;
+    return "comment_id" in to ? sendPrivateReply(igUserId, token, to.comment_id, body) : sendMessage(igUserId, token, to.id, body);
   }
 }
 
@@ -278,7 +291,7 @@ async function handleMessage(igUserId: string, m: MessagingEvent) {
 
     if (follows) {
       const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
-      await sendMessage(account.igUserId, token, sender, `Thanks for following! 🙌\n\n${ev.campaigns.cta_label || "Get it here"}: ${link}`);
+      await linkMessage(account.igUserId, token, { id: sender }, "Thanks for following! 🙌", ev.campaigns.cta_label || "Get it here", link);
       return setStatus(ev.id, { status: "sent", sent_at: nowIso(), error: null, processed_at: nowIso() });
     }
 

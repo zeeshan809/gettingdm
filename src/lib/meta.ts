@@ -147,6 +147,30 @@ export async function sendMessage(igUserId: string, token: string, igsid: string
   });
 }
 
+// Text with a tappable link button (Instagram "button template") instead of a pasted URL.
+// recipient: { comment_id } for the private reply to a comment, { id } for a regular DM.
+export async function sendLinkButton(
+  igUserId: string,
+  token: string,
+  recipient: { comment_id: string } | { id: string },
+  text: string,
+  button: { title: string; url: string },
+) {
+  return graphPost<{ recipient_id: string; message_id: string }>(`/${igUserId}/messages`, token, {
+    recipient,
+    message: {
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: text.slice(0, 640),
+          buttons: [{ type: "web_url", url: button.url, title: button.title.slice(0, 20) }],
+        },
+      },
+    },
+  });
+}
+
 // Needs the person's consent, which they give by messaging the account.
 export async function followsAccount(igsid: string, token: string) {
   const res = await graph<{ is_user_follow_business?: boolean }>(`/${igsid}`, { fields: "is_user_follow_business", access_token: token });
