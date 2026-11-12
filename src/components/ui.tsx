@@ -1,5 +1,6 @@
 import Link from "next/link";
 import clsx from "clsx";
+import { Inbox } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import type { AutomationStatus, ConnectionStatus, SubscriptionStatus, TicketStatus } from "@/lib/mock-data";
 import { mediaHue } from "@/lib/campaigns";
@@ -7,14 +8,14 @@ import { mediaHue } from "@/lib/campaigns";
 export const cn = clsx;
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn("rounded-xl border border-zinc-200 bg-white", className)}>{children}</div>;
+  return <div className={cn("rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(23,42,71,0.04),0_4px_16px_-8px_rgba(23,42,71,0.08)]", className)}>{children}</div>;
 }
 
 export function CardHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4">
-      <div>
-        <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+      <div className="min-w-0">
+        <h2 className="text-[15px] font-semibold text-zinc-900">{title}</h2>
         {description && <p className="mt-0.5 text-xs text-zinc-500">{description}</p>}
       </div>
       {action}
@@ -26,7 +27,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
         {description && <p className="mt-1 text-sm text-zinc-500">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -35,20 +36,20 @@ export function PageHeader({ title, description, actions }: { title: string; des
 }
 
 const buttonStyles = {
-  primary: "bg-violet-600 text-white hover:bg-violet-700 shadow-sm",
-  secondary: "bg-white text-zinc-800 border border-zinc-200 hover:bg-zinc-50",
-  ghost: "text-zinc-600 hover:bg-zinc-100",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-  "danger-outline": "border border-red-200 text-red-600 hover:bg-red-50",
+  primary: "bg-violet-600 text-white shadow-sm shadow-violet-600/20 hover:bg-violet-700",
+  secondary: "border border-zinc-200 bg-white text-zinc-800 shadow-sm hover:border-violet-200 hover:bg-violet-50/50 hover:text-violet-700",
+  ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900",
+  danger: "bg-red-600 text-white shadow-sm hover:bg-red-700",
+  "danger-outline": "border border-red-200 bg-white text-red-600 hover:bg-red-50",
 };
-const buttonSizes = { sm: "h-8 px-3 text-xs", md: "h-9 px-4 text-sm", lg: "h-11 px-5 text-sm" };
+const buttonSizes = { sm: "h-8 rounded-lg px-3 text-xs", md: "h-10 rounded-xl px-4 text-sm", lg: "h-11 rounded-xl px-5 text-sm" };
 
 type ButtonVariant = keyof typeof buttonStyles;
 type ButtonSize = keyof typeof buttonSizes;
 
 export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex select-none items-center justify-center gap-2 font-medium transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-500/25 disabled:pointer-events-none disabled:opacity-50",
     buttonStyles[variant],
     buttonSizes[size],
     className,
@@ -185,23 +186,23 @@ export function MediaThumb({ id, type, thumbnailUrl, size = 48 }: { id: string; 
 
 export function Label({ children, htmlFor, hint }: { children: ReactNode; htmlFor?: string; hint?: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-zinc-800">
+    <label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-zinc-800">
       {children}
       {hint && <span className="ml-1 font-normal text-zinc-400">{hint}</span>}
     </label>
   );
 }
 
-const fieldClass = "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:bg-zinc-50";
+const fieldClass = "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 shadow-sm shadow-zinc-900/[0.02] transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-violet-400 focus:outline-none focus:ring-4 focus:ring-violet-500/15 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
-  return <input {...props} className={cn(fieldClass, "h-9", className)} />;
+  return <input {...props} className={cn(fieldClass, "h-10", className)} />;
 }
 export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
   return <textarea {...props} className={cn(fieldClass, className)} />;
 }
 export function Select({ className, ...props }: ComponentProps<"select">) {
-  return <select {...props} className={cn(fieldClass, "h-9", className)} />;
+  return <select {...props} className={cn(fieldClass, "field-select h-10 cursor-pointer", className)} />;
 }
 
 export function Field({ label, hint, children, help }: { label: string; hint?: string; help?: string; children: ReactNode }) {
@@ -216,7 +217,7 @@ export function Field({ label, hint, children, help }: { label: string; hint?: s
 
 export function FormError({ children }: { children?: ReactNode }) {
   if (!children) return null;
-  return <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{children}</p>;
+  return <p role="alert" className="rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{children}</p>;
 }
 
 export function Table({ children }: { children: ReactNode }) {
@@ -227,10 +228,10 @@ export function Table({ children }: { children: ReactNode }) {
   );
 }
 export function Th({ children, className }: { children?: ReactNode; className?: string }) {
-  return <th className={cn("whitespace-nowrap border-b border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-xs font-medium text-zinc-500", className)}>{children}</th>;
+  return <th className={cn("whitespace-nowrap border-b border-zinc-100 bg-zinc-50/70 px-4 py-3 text-xs font-medium uppercase tracking-wide text-zinc-500", className)}>{children}</th>;
 }
 export function Td({ children, className }: { children?: ReactNode; className?: string }) {
-  return <td className={cn("whitespace-nowrap border-b border-zinc-100 px-4 py-3 text-zinc-700", className)}>{children}</td>;
+  return <td className={cn("whitespace-nowrap border-b border-zinc-100 px-4 py-3.5 text-zinc-700", className)}>{children}</td>;
 }
 
 export function Progress({ value, tone = "violet" }: { value: number; tone?: "violet" | "green" | "yellow" | "red" }) {
@@ -250,7 +251,7 @@ export function Callout({ tone = "violet", title, children, action }: { tone?: "
     blue: "border-sky-200 bg-sky-50 text-sky-900",
   };
   return (
-    <div className={cn("flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between", tones[tone])}>
+    <div className={cn("flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5", tones[tone])}>
       <div>
         <p className="text-sm font-semibold">{title}</p>
         {children && <div className="mt-0.5 text-sm opacity-80">{children}</div>}
@@ -263,6 +264,9 @@ export function Callout({ tone = "violet", title, children, action }: { tone?: "
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+      <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+        <Inbox className="h-5 w-5" />
+      </span>
       <p className="text-sm font-semibold text-zinc-900">{title}</p>
       {description && <p className="mt-1 max-w-sm text-sm text-zinc-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}

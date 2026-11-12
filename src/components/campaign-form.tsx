@@ -121,14 +121,14 @@ export function CampaignForm({
                         onClick={() => set("mediaId", m.id)}
                         title={taken ? `${m.caption} (another active campaign uses this)` : m.caption}
                         className={cn(
-                          "relative rounded-lg p-1 ring-2 transition",
-                          form.mediaId === m.id ? "ring-violet-600" : "ring-transparent hover:ring-zinc-200",
+                          "relative mx-auto block w-fit rounded-xl p-1 ring-2 transition",
+                          form.mediaId === m.id ? "ring-violet-500" : "ring-transparent hover:ring-violet-200",
                           taken && "opacity-40",
                         )}
                       >
                         <MediaThumb id={m.id} type={m.type} thumbnailUrl={m.thumbnailUrl} size={64} />
                         {form.mediaId === m.id && (
-                          <span className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-white"><Check className="h-3 w-3" /></span>
+                          <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-white ring-2 ring-white"><Check className="h-3 w-3" /></span>
                         )}
                       </button>
                     );
