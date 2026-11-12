@@ -20,7 +20,18 @@ export type CampaignInput = {
   cta: string;
   link: StoreLink;
   active: boolean;
+  delaySeconds: number;
+  followRequired: boolean;
 };
+
+// "Delay message": when the DM goes out after the comment. The worker runs every minute.
+export const DELAY_OPTIONS: { seconds: number; label: string }[] = [
+  { seconds: 0, label: "Instantly" },
+  { seconds: 60, label: "After 1 minute" },
+  { seconds: 300, label: "After 5 minutes" },
+  { seconds: 900, label: "After 15 minutes" },
+  { seconds: 3600, label: "After 1 hour" },
+];
 
 export type CampaignStats = {
   comments: number; eligible: number; ineligible: number; sent: number;
@@ -55,6 +66,7 @@ export function validateCampaign(c: CampaignInput): string | null {
   if (c.link.description.length > 120) return "Link description must be 120 characters or fewer.";
   if (c.link.buttonLabel.length > 30) return "Link button text must be 30 characters or fewer.";
   if (!isHttpUrl(c.link.url.trim())) return "Enter a full link URL starting with https://";
+  if (!DELAY_OPTIONS.some((d) => d.seconds === c.delaySeconds)) return "Pick when the DM should be sent.";
   return null;
 }
 

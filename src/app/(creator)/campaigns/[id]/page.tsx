@@ -74,6 +74,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           cta: c.cta_label,
           link: { title: c.link_title, description: c.link_description, url: c.link_url, buttonLabel: c.link_button_label, active: c.link_active },
           active: c.active,
+          delaySeconds: c.delay_seconds,
+          followRequired: c.follow_required,
         }}
         media={media}
         sampleMedia={ig.sample}

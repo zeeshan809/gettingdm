@@ -28,7 +28,7 @@ export type SubscriptionStatus =
   | "trial" | "active" | "payment_pending" | "past_due" | "cancelled" | "expired" | "suspended";
 
 export type AutomationStatus =
-  | "received" | "processing" | "eligible" | "queued" | "sent" | "failed" | "skipped" | "ineligible";
+  | "received" | "processing" | "eligible" | "queued" | "sent" | "failed" | "skipped" | "ineligible" | "awaiting_follow";
 
 export type TicketStatus = "open" | "in_progress" | "waiting" | "resolved" | "closed";
 

@@ -6,7 +6,7 @@ import { Check, Info, X } from "lucide-react";
 import { createCampaign, updateCampaign } from "@/app/(creator)/campaigns/actions";
 import { dmLinkFor } from "@/lib/plan";
 import {
-  CTA_MAX, KEYWORD_MAX_LENGTH, KEYWORDS_MAX, MESSAGE_MAX, normalizeKeyword,
+  CTA_MAX, DELAY_OPTIONS, KEYWORD_MAX_LENGTH, KEYWORDS_MAX, MESSAGE_MAX, normalizeKeyword,
   type CampaignInput, type InstagramMedia,
 } from "@/lib/campaigns";
 import { MATCH_RULES, matchKeyword } from "@/lib/keywords";
@@ -23,6 +23,8 @@ const blank = (mediaId: string): CampaignInput => ({
   cta: "Open the link",
   link: { title: "", description: "", url: "", buttonLabel: "Get it now", active: true },
   active: true,
+  delaySeconds: 0,
+  followRequired: false,
 });
 
 export function CampaignForm({
@@ -216,6 +218,20 @@ export function CampaignForm({
             <Field label="Call-to-action button text">
               <Input value={form.cta} onChange={(e) => set("cta", e.target.value)} maxLength={CTA_MAX} />
             </Field>
+            <Field label="Send the DM" help={form.delaySeconds ? "A short delay feels more human. Delayed DMs go out within a minute of the chosen time." : undefined}>
+              <Select value={form.delaySeconds} onChange={(e) => set("delaySeconds", Number(e.target.value))}>
+                {DELAY_OPTIONS.map((d) => <option key={d.seconds} value={d.seconds}>{d.label}</option>)}
+              </Select>
+            </Field>
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-zinc-200 p-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900">Follow before DM</p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  The first DM asks them to reply. We check they follow you, then send the link. Non-followers are asked to follow first.
+                </p>
+              </div>
+              <Toggle checked={form.followRequired} onChange={(v) => set("followRequired", v)} label="Follow before DM" />
+            </div>
           </div>
         </Card>
 
@@ -243,9 +259,17 @@ export function CampaignForm({
             <div className="space-y-2 bg-zinc-50 p-5">
               <div className="ml-6 whitespace-pre-line rounded-2xl rounded-tr-sm bg-violet-600 p-3 text-sm text-white">
                 {preview}
-                <span className="mt-2 block break-all text-xs underline opacity-90">{storefrontUrl}</span>
+                {form.followRequired
+                  ? <span className="mt-2 block text-xs opacity-90">Reply to this message and I&apos;ll send your link 👇</span>
+                  : <span className="mt-2 block break-all text-xs underline opacity-90">{storefrontUrl}</span>}
               </div>
               <div className="ml-6 rounded-xl border border-zinc-200 bg-white py-2 text-center text-sm font-medium text-violet-700">{form.cta || "Open the link"}</div>
+              {form.followRequired && (
+                <p className="ml-6 pt-1 text-xs text-zinc-500">They reply, we check they follow you, then send {storefront ? "your storefront link" : "the campaign link"}.</p>
+              )}
+              {form.delaySeconds > 0 && (
+                <p className="ml-6 text-xs text-zinc-500">Sent {DELAY_OPTIONS.find((d) => d.seconds === form.delaySeconds)?.label.toLowerCase()}.</p>
+              )}
             </div>
           </Card>
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { getCurrentCreator } from "@/lib/auth";
 import { normalizeKeyword, validateCampaign, type CampaignInput } from "@/lib/campaigns";
-import { getInstagramMedia } from "@/lib/instagram";
+import { ensureMessagingSubscription, getInstagramMedia } from "@/lib/instagram";
 import { createClient } from "@/lib/supabase/server";
 import { UUID_RE } from "@/lib/storefront";
 
@@ -30,6 +30,8 @@ function toRow(input: CampaignInput) {
     link_button_label: input.link.buttonLabel.trim() || "Open",
     link_active: input.link.active,
     active: input.active,
+    delay_seconds: input.delaySeconds,
+    follow_required: input.followRequired,
   };
 }
 
@@ -62,6 +64,7 @@ export async function createCampaign(input: CampaignInput): Promise<Result> {
     .single();
   if (dbError) return { error: dbErrorMessage(dbError) };
 
+  if (input.followRequired) await ensureMessagingSubscription(creator.id);
   revalidatePath("/campaigns");
   return { ok: true, id: data.id };
 }
@@ -83,6 +86,7 @@ export async function updateCampaign(id: string, input: CampaignInput): Promise<
   const { error: dbError } = await supabase.from("campaigns").update({ ...toRow(input), ...media }).eq("id", id);
   if (dbError) return { error: dbErrorMessage(dbError) };
 
+  if (input.followRequired) await ensureMessagingSubscription(creator.id);
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${id}`);
   return { ok: true, id };

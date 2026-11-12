@@ -1,0 +1,299 @@
+import "server-only";
+import { matchKeyword, type MatchRule } from "./keywords";
+import { accessToken, markConnectionProblem } from "./instagram";
+import { followsAccount, MetaError, sendMessage, sendPrivateReply, type QuickReply } from "./meta";
+import { dmLinkFor, hasStorefront } from "./plan";
+import { createServiceClient } from "./supabase/server";
+
+// Comment-to-DM worker.
+// 1. A comment webhook arrives -> find the live campaign on that post -> match the keyword.
+// 2. Send the DM right away, or queue it when the campaign has a delay.
+// 3. Follow before DM: the first DM asks for a reply; when the person replies we check
+//    they follow the creator, then send the link (or ask them to follow first).
+// Every send first "claims" the row (status -> processing), so a DM is never sent twice
+// even if the webhook and the minute worker run at the same time.
+
+type CommentValue = { id?: string; text?: string; from?: { id?: string; username?: string }; media?: { id?: string }; parent_id?: string };
+type MessagingEvent = {
+  sender?: { id?: string };
+  recipient?: { id?: string };
+  message?: { text?: string; is_echo?: boolean; quick_reply?: { payload?: string } };
+  postback?: { payload?: string };
+};
+type MetaPayload = { entry?: { id: string; changes?: { field: string; value: CommentValue }[]; messaging?: MessagingEvent[] }[] };
+
+const MAX_ATTEMPTS = 4;
+const MAX_FOLLOW_PROMPTS = 5;
+const REPLY_WINDOW_MS = 7 * 86_400_000; // Instagram allows a private reply within 7 days
+const LINK_PAYLOAD = "GDM_LINK:";
+const LIVE_PLAN = ["trial", "active", "payment_pending", "past_due"];
+
+const svc = () => createServiceClient();
+const nowIso = () => new Date().toISOString();
+
+// ---------- entry points ----------
+
+export async function processMetaPayload(eventId: string, payload: MetaPayload) {
+  try {
+    for (const entry of payload.entry ?? []) {
+      for (const change of entry.changes ?? []) {
+        if (change.field === "comments" && change.value) await handleComment(entry.id, change.value);
+      }
+      for (const m of entry.messaging ?? []) await handleMessage(entry.id, m);
+    }
+    await svc().from("webhook_events").update({ processed_at: nowIso(), error: null }).eq("id", eventId);
+  } catch (e) {
+    console.error("meta event processing failed", e);
+    await svc().from("webhook_events").update({ error: e instanceof Error ? e.message.slice(0, 500) : "Processing failed" }).eq("id", eventId);
+  }
+}
+
+// Called every minute: delayed DMs, retries, and webhooks that weren't processed in time.
+export async function runDueWork() {
+  const db = svc();
+  const { data: due } = await db
+    .from("comment_events")
+    .select("id")
+    .eq("status", "queued")
+    .lte("next_attempt_at", nowIso())
+    .order("next_attempt_at")
+    .limit(25);
+  for (const row of due ?? []) await deliver(row.id);
+
+  const stale = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { data: missed } = await db
+    .from("webhook_events")
+    .select("id, payload")
+    .eq("provider", "meta")
+    .is("processed_at", null)
+    .is("error", null)
+    .lte("received_at", stale)
+    .limit(25);
+  for (const ev of missed ?? []) await processMetaPayload(ev.id, ev.payload as MetaPayload);
+
+  return { delivered: due?.length ?? 0, recovered: missed?.length ?? 0 };
+}
+
+// ---------- context ----------
+
+async function accountFor(igUserId: string) {
+  const { data } = await svc()
+    .from("instagram_accounts")
+    .select("creator_id, ig_user_id, username, status, profiles (username, subscriptions (plan, status))")
+    .eq("ig_user_id", igUserId)
+    .maybeSingle();
+  if (!data || data.status !== "connected" || !data.profiles) return null;
+  return {
+    creatorId: data.creator_id,
+    igUserId: data.ig_user_id,
+    handle: data.username,
+    username: data.profiles.username,
+    sub: data.profiles.subscriptions,
+  };
+}
+
+const personalize = (text: string, username: string | null) =>
+  text.replaceAll("{first_name}", username ?? "there").replaceAll("{username}", username ? `@${username}` : "there");
+
+async function setStatus(id: string, patch: Record<string, unknown>) {
+  await svc().from("comment_events").update(patch as never).eq("id", id);
+}
+
+// Atomically take a row so only one worker sends it.
+async function claim(id: string, from: string[]) {
+  const { data } = await svc().from("comment_events").update({ status: "processing" }).eq("id", id).in("status", from as never).select("id");
+  return (data?.length ?? 0) > 0;
+}
+
+// ---------- comments ----------
+
+async function handleComment(igUserId: string, v: CommentValue) {
+  if (!v.id || !v.media?.id || !v.from?.id) return;
+  if (v.from.id === igUserId) return; // the creator's own comments and replies
+
+  const account = await accountFor(igUserId);
+  if (!account) return;
+
+  const db = svc();
+  const { data: campaign } = await db
+    .from("campaigns")
+    .select("id, keywords, match_rule, delay_seconds")
+    .eq("creator_id", account.creatorId)
+    .eq("ig_media_id", v.media.id)
+    .eq("active", true)
+    .maybeSingle();
+  if (!campaign) return;
+
+  const { data: row, error } = await db
+    .from("comment_events")
+    .insert({
+      creator_id: account.creatorId,
+      campaign_id: campaign.id,
+      ig_comment_id: v.id,
+      ig_media_id: v.media.id,
+      commenter_ig_id: v.from.id,
+      commenter_username: v.from.username ?? null,
+      comment_text: (v.text ?? "").slice(0, 1000),
+      status: "processing",
+    })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code !== "23505") console.error("comment_events insert failed", error); // 23505: webhook redelivery
+    return;
+  }
+
+  const matched = matchKeyword(v.text ?? "", campaign.keywords, campaign.match_rule as MatchRule);
+  if (!matched) return setStatus(row.id, { status: "ineligible", processed_at: nowIso() });
+
+  if (!account.sub || !LIVE_PLAN.includes(account.sub.status)) {
+    return setStatus(row.id, { status: "skipped", matched_keyword: matched, error: "Plan inactive", processed_at: nowIso() });
+  }
+
+  // One DM per person per campaign.
+  let dup = db
+    .from("comment_events")
+    .select("id", { count: "exact", head: true })
+    .eq("campaign_id", campaign.id)
+    .in("status", ["sent", "awaiting_follow", "queued", "eligible"])
+    .neq("id", row.id);
+  dup = v.from.username ? dup.eq("commenter_username", v.from.username) : dup.eq("commenter_ig_id", v.from.id);
+  const { count } = await dup;
+  if (count) return setStatus(row.id, { status: "skipped", matched_keyword: matched, error: "Already sent to this person", processed_at: nowIso() });
+
+  if (campaign.delay_seconds > 0) {
+    return setStatus(row.id, {
+      status: "queued",
+      matched_keyword: matched,
+      next_attempt_at: new Date(Date.now() + campaign.delay_seconds * 1000).toISOString(),
+    });
+  }
+  await setStatus(row.id, { status: "eligible", matched_keyword: matched });
+  await deliver(row.id);
+}
+
+// Sends the first DM (private reply) for a queued or eligible comment.
+export async function deliver(eventId: string) {
+  if (!(await claim(eventId, ["queued", "eligible"]))) return;
+  const db = svc();
+  const { data: ev } = await db
+    .from("comment_events")
+    .select("id, creator_id, campaign_id, ig_comment_id, commenter_username, received_at, attempts, campaigns (message, cta_label, follow_required, active)")
+    .eq("id", eventId)
+    .single();
+  if (!ev || !ev.campaigns) return setStatus(eventId, { status: "skipped", error: "Campaign deleted", processed_at: nowIso() });
+  if (!ev.campaigns.active) return setStatus(eventId, { status: "skipped", error: "Campaign paused", processed_at: nowIso() });
+  if (Date.now() - new Date(ev.received_at).getTime() > REPLY_WINDOW_MS) {
+    return setStatus(eventId, { status: "failed", error: "Comment is older than 7 days", processed_at: nowIso() });
+  }
+
+  const { data: acc } = await db.from("instagram_accounts").select("ig_user_id").eq("creator_id", ev.creator_id).maybeSingle();
+  const account = acc ? await accountFor(acc.ig_user_id) : null;
+  const token = account ? await accessToken(ev.creator_id) : null;
+  if (!account || !token) return setStatus(eventId, { status: "failed", error: "Instagram not connected", processed_at: nowIso() });
+
+  const c = ev.campaigns;
+  const text = personalize(c.message, ev.commenter_username);
+  const cta = c.cta_label || "Get it here";
+
+  try {
+    if (c.follow_required) {
+      const prompt = `${text}\n\nReply to this message and I'll send your link 👇`;
+      const res = await privateReplyWithFallback(account.igUserId, token, ev.ig_comment_id, prompt, [{ title: cta, payload: `${LINK_PAYLOAD}${ev.id}` }]);
+      await setStatus(eventId, { status: "awaiting_follow", commenter_ig_id: res.recipient_id, attempts: 0, error: null, processed_at: nowIso() });
+    } else {
+      const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
+      const res = await sendPrivateReply(account.igUserId, token, ev.ig_comment_id, `${text}\n\n${cta}: ${link}`);
+      await setStatus(eventId, { status: "sent", commenter_ig_id: res.recipient_id, sent_at: nowIso(), error: null, processed_at: nowIso() });
+    }
+  } catch (e) {
+    await handleSendError(eventId, ev.creator_id, ev.attempts, e);
+  }
+}
+
+// Quick replies make "reply to get the link" one tap. If Instagram rejects them on a
+// private reply, send the same text without the button.
+async function privateReplyWithFallback(igUserId: string, token: string, commentId: string, text: string, qr: QuickReply[]) {
+  try {
+    return await sendPrivateReply(igUserId, token, commentId, text, qr);
+  } catch (e) {
+    if (e instanceof MetaError && e.code === 100) return sendPrivateReply(igUserId, token, commentId, text);
+    throw e;
+  }
+}
+
+async function handleSendError(eventId: string, creatorId: string, attempts: number, e: unknown) {
+  const message = e instanceof Error ? e.message.slice(0, 500) : "Send failed";
+  if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) {
+    await markConnectionProblem(creatorId, e);
+    return setStatus(eventId, { status: "failed", error: message, processed_at: nowIso() });
+  }
+  // 10900-ish / 551 / "already replied" style errors won't succeed on retry either.
+  const permanent = e instanceof MetaError && (e.code === 100 || e.code === 10 || e.code === 551);
+  const next = attempts + 1;
+  if (permanent || next >= MAX_ATTEMPTS) {
+    return setStatus(eventId, { status: "failed", attempts: next, error: message, processed_at: nowIso() });
+  }
+  const backoffMin = [1, 5, 15][next - 1] ?? 15;
+  await setStatus(eventId, { status: "queued", attempts: next, error: message, next_attempt_at: new Date(Date.now() + backoffMin * 60_000).toISOString() });
+}
+
+// ---------- replies (Follow before DM) ----------
+
+async function handleMessage(igUserId: string, m: MessagingEvent) {
+  const sender = m.sender?.id;
+  if (!sender || sender === igUserId || m.message?.is_echo) return;
+  if (!m.message && !m.postback) return;
+
+  const account = await accountFor(igUserId);
+  if (!account) return;
+
+  // The tapped button names the exact comment; any other reply uses the latest open one.
+  const payload = m.message?.quick_reply?.payload ?? m.postback?.payload ?? "";
+  const db = svc();
+  let query = db
+    .from("comment_events")
+    .select("id, campaign_id, attempts, campaigns (cta_label, active)")
+    .eq("creator_id", account.creatorId)
+    .eq("status", "awaiting_follow");
+  query = payload.startsWith(LINK_PAYLOAD) ? query.eq("id", payload.slice(LINK_PAYLOAD.length)) : query.eq("commenter_ig_id", sender);
+  const { data: ev } = await query.order("received_at", { ascending: false }).limit(1).maybeSingle();
+  if (!ev || !ev.campaigns) return;
+  if (!(await claim(ev.id, ["awaiting_follow"]))) return;
+
+  const token = await accessToken(account.creatorId);
+  if (!token) return setStatus(ev.id, { status: "awaiting_follow" });
+
+  try {
+    let follows = true;
+    try {
+      follows = await followsAccount(sender, token);
+    } catch (e) {
+      // If Instagram won't tell us, don't trap the person: send the link.
+      console.error("follow check failed", e);
+    }
+
+    if (follows) {
+      const link = dmLinkFor({ username: account.username, campaignId: ev.campaign_id!, storefront: hasStorefront(account.sub) });
+      await sendMessage(account.igUserId, token, sender, `Thanks for following! 🙌\n\n${ev.campaigns.cta_label || "Get it here"}: ${link}`);
+      return setStatus(ev.id, { status: "sent", sent_at: nowIso(), error: null, processed_at: nowIso() });
+    }
+
+    const prompts = ev.attempts + 1;
+    if (prompts > MAX_FOLLOW_PROMPTS) {
+      return setStatus(ev.id, { status: "skipped", attempts: prompts, error: "Didn't follow", processed_at: nowIso() });
+    }
+    await sendMessage(
+      account.igUserId,
+      token,
+      sender,
+      `Almost there! Follow @${account.handle} first, then tap below and I'll send your link 🙌`,
+      [{ title: "I followed ✅", payload: `${LINK_PAYLOAD}${ev.id}` }],
+    );
+    await setStatus(ev.id, { status: "awaiting_follow", attempts: prompts, error: null });
+  } catch (e) {
+    console.error("follow-gate reply failed", e);
+    if (e instanceof MetaError && (e.tokenInvalid || e.permissionMissing)) await markConnectionProblem(account.creatorId, e);
+    await setStatus(ev.id, { status: "awaiting_follow", error: e instanceof Error ? e.message.slice(0, 500) : "Reply failed" });
+  }
+}

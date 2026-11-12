@@ -97,9 +97,60 @@ export async function assignedInstagramAccounts(token: string): Promise<Connecte
   }));
 }
 
-// Comment webhooks for a connected account only arrive once it's subscribed.
+// Webhooks for a connected account only arrive once it's subscribed.
+// comments: comment-to-DM. messages: replies to our DMs (Follow before DM).
 export async function subscribeInstagram(igUserId: string, token: string) {
-  await graph(`/${igUserId}/subscribed_apps`, { subscribed_fields: "comments", access_token: token }, { method: "POST" });
+  await graph(`/${igUserId}/subscribed_apps`, { subscribed_fields: "comments,messages", access_token: token }, { method: "POST" });
+}
+
+// ---------- Messaging ----------
+
+async function graphPost<T>(path: string, token: string, body: unknown): Promise<T> {
+  const qs = new URLSearchParams({ access_token: token, appsecret_proof: proof(token) });
+  const res = await fetch(`${GRAPH}${path}?${qs}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const e = data.error ?? {};
+    throw new MetaError(e.message ?? `Meta API error ${res.status}`, e.code, e.error_subcode);
+  }
+  return data as T;
+}
+
+export type QuickReply = { title: string; payload: string };
+
+const withQuickReplies = (text: string, quickReplies?: QuickReply[]) => ({
+  text,
+  ...(quickReplies?.length
+    ? { quick_replies: quickReplies.map((q) => ({ content_type: "text", title: q.title.slice(0, 20), payload: q.payload })) }
+    : {}),
+});
+
+// Private reply to a comment (allowed once, within 7 days of the comment).
+// Returns the commenter's Instagram-scoped id (IGSID).
+export async function sendPrivateReply(igUserId: string, token: string, commentId: string, text: string, quickReplies?: QuickReply[]) {
+  return graphPost<{ recipient_id: string; message_id: string }>(`/${igUserId}/messages`, token, {
+    recipient: { comment_id: commentId },
+    message: withQuickReplies(text, quickReplies),
+  });
+}
+
+// Regular DM to someone who messaged the account in the last 24 hours.
+export async function sendMessage(igUserId: string, token: string, igsid: string, text: string, quickReplies?: QuickReply[]) {
+  return graphPost<{ recipient_id: string; message_id: string }>(`/${igUserId}/messages`, token, {
+    recipient: { id: igsid },
+    message: withQuickReplies(text, quickReplies),
+  });
+}
+
+// Needs the person's consent, which they give by messaging the account.
+export async function followsAccount(igsid: string, token: string) {
+  const res = await graph<{ is_user_follow_business?: boolean }>(`/${igsid}`, { fields: "is_user_follow_business", access_token: token });
+  return res.is_user_follow_business === true;
 }
 
 export async function unsubscribeInstagram(igUserId: string, token: string) {

@@ -108,6 +108,8 @@ export type Database = {
           created_at: string
           creator_id: string
           cta_label: string
+          delay_seconds: number
+          follow_required: boolean
           id: string
           ig_media_id: string
           keywords: string[]
@@ -131,6 +133,8 @@ export type Database = {
           created_at?: string
           creator_id?: string
           cta_label?: string
+          delay_seconds?: number
+          follow_required?: boolean
           id?: string
           ig_media_id: string
           keywords: string[]
@@ -154,6 +158,8 @@ export type Database = {
           created_at?: string
           creator_id?: string
           cta_label?: string
+          delay_seconds?: number
+          follow_required?: boolean
           id?: string
           ig_media_id?: string
           keywords?: string[]
@@ -911,6 +917,7 @@ export type Database = {
         | "failed"
         | "skipped"
         | "ineligible"
+        | "awaiting_follow"
       connection_status:
         | "connected"
         | "expired"
@@ -1074,6 +1081,7 @@ export const Constants = {
         "failed",
         "skipped",
         "ineligible",
+        "awaiting_follow",
       ],
       connection_status: [
         "connected",

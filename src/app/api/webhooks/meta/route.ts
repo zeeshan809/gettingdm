@@ -1,10 +1,14 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { processMetaPayload } from "@/lib/dm-worker";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // Meta webhook endpoint (Instagram comments, messages).
 // GET: Meta's one-time subscription check. POST: signed event deliveries,
-// stored raw in webhook_events; the comment-to-DM worker processes them later.
+// stored raw in webhook_events, then processed by the comment-to-DM worker right
+// after the response is sent (the minute worker picks up anything missed).
+
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
@@ -40,14 +44,17 @@ export async function POST(request: NextRequest) {
   // Meta sends no delivery id and retries on failure, so the body hash makes
   // redeliveries idempotent.
   const id = `meta_${createHash("sha256").update(raw).digest("hex")}`;
-  const { error } = await createServiceClient()
+  const { data: stored, error } = await createServiceClient()
     .from("webhook_events")
-    .upsert({ id, provider: "meta", payload: payload as never }, { onConflict: "id", ignoreDuplicates: true });
+    .upsert({ id, provider: "meta", payload: payload as never }, { onConflict: "id", ignoreDuplicates: true })
+    .select("id");
 
   if (error) {
     console.error("meta webhook store failed", error);
     // Non-2xx makes Meta retry later.
     return new NextResponse("Error", { status: 500 });
   }
+  // Only new deliveries are processed; a redelivery returns no row.
+  if (stored?.length) after(() => processMetaPayload(id, payload as never));
   return new NextResponse("OK", { status: 200 });
 }

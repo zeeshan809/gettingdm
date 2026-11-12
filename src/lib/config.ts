@@ -28,6 +28,8 @@ export const PLANS: {
       { label: "Instagram connection", value: "Included" },
       { label: "Comment-to-DM automation", value: "Included" },
       { label: "Instant DM within seconds", value: "Included" },
+      { label: "Follow before DM", value: "Included" },
+      { label: "Delay message", value: "Included" },
       { label: "Unlimited DMs and auto replies", value: "Included" },
       { label: "Unlimited contacts", value: "Included" },
       { label: "Active campaigns", value: "Unlimited" },

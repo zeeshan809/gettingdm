@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient, createServiceClient } from "./supabase/server";
 import { decryptToken } from "./token-crypto";
-import { MetaError, recentMedia, unsubscribeInstagram } from "./meta";
+import { MetaError, recentMedia, subscribeInstagram, unsubscribeInstagram } from "./meta";
 import type { InstagramMedia } from "./campaigns";
 
 // Placeholder posts so campaigns can be built and tested locally before
@@ -27,12 +27,12 @@ export const getInstagramAccount = cache(async (creatorId: string) => {
 });
 
 // Server-only: decrypted access token for Graph calls.
-async function accessToken(creatorId: string) {
+export async function accessToken(creatorId: string) {
   const { data } = await createServiceClient().from("instagram_tokens").select("access_token_encrypted").eq("creator_id", creatorId).maybeSingle();
   return data ? decryptToken(data.access_token_encrypted) : null;
 }
 
-async function markConnectionProblem(creatorId: string, e: MetaError) {
+export async function markConnectionProblem(creatorId: string, e: MetaError) {
   await createServiceClient()
     .from("instagram_accounts")
     .update({ status: e.tokenInvalid ? "expired" : e.permissionMissing ? "revoked" : "error", last_error: e.message })
@@ -84,4 +84,17 @@ export async function disconnectInstagram(creatorId: string) {
     console.error("unsubscribeInstagram failed", e);
   }
   await svc.from("instagram_accounts").delete().eq("creator_id", creatorId);
+}
+
+// Re-subscribes the account so DM replies (messages) arrive too. Accounts
+// connected before Follow before DM existed only had comments subscribed.
+export async function ensureMessagingSubscription(creatorId: string) {
+  const { data: account } = await createServiceClient().from("instagram_accounts").select("ig_user_id, status").eq("creator_id", creatorId).maybeSingle();
+  if (account?.status !== "connected") return;
+  try {
+    const token = await accessToken(creatorId);
+    if (token) await subscribeInstagram(account.ig_user_id, token);
+  } catch (e) {
+    console.error("instagram resubscribe failed", e);
+  }
 }

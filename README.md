@@ -57,6 +57,12 @@ node --env-file=.env.local scripts/create-admin.mjs <email> <password> "<name>"
   - Settings covers name, login email, password change (re-checks the current password), email preferences, and account deletion (deletes the auth user; all data cascades).
   - Notifications are created only server-side through `notify()`: a welcome message on sign-up, and an alert when support replies.
   - Support tickets are created with `create_support_ticket()`. A trigger sets the ticket to "waiting" on a support reply and back to "open" on a creator reply.
+- **Comment-to-DM worker (`src/lib/dm-worker.ts`):**
+  - The Meta webhook stores each delivery, then processes it right after responding: finds the live campaign on that post, matches the keyword, skips duplicates (one DM per person per campaign) and sends a private reply with the link from `dmLinkFor`.
+  - **Delay message:** campaigns can wait 1 minute to 1 hour; those DMs are queued and sent by the minute worker.
+  - **Follow before DM:** the first DM asks the person to reply. When they reply, we check `is_user_follow_business`; followers get the link, others are asked to follow first (up to 5 times). If Instagram won't return the follow status, the link is sent anyway.
+  - **Minute worker:** `POST /api/worker/dm` (Bearer `DM_WORKER_SECRET`) sends due DMs, retries failures (1, 5, 15 min) and recovers webhooks that weren't processed. Supabase pg_cron calls it every minute (`20261112000600_dm_worker_cron.sql`).
+  - Setup: set `DM_WORKER_SECRET` in Vercel; in the Supabase SQL editor run `select vault.create_secret('<same value>', 'dm_worker_secret');`; run `supabase db push`. In the Meta app, subscribe the Instagram webhook to `comments` and `messages`, and make sure the login configuration includes `instagram_manage_comments` and `instagram_manage_messages`. Accounts connected earlier are re-subscribed to `messages` when a Follow before DM campaign is saved.
 - **Plans:**
   - Free trial unlocks everything. Creator (₹99) is DM automation only. Creator Plus (₹299) adds the storefront and its links.
   - `src/lib/plan.ts` decides access (`hasStorefront`) and the link each DM carries (`dmLinkFor`). The comment-to-DM worker must use `dmLinkFor` when it sends a DM.

@@ -91,6 +91,7 @@ const automationMeta: Record<AutomationStatus, [string, BadgeTone]> = {
   failed: ["Failed", "red"],
   skipped: ["Skipped", "gray"],
   ineligible: ["Ineligible", "yellow"],
+  awaiting_follow: ["Waiting for follow", "yellow"],
 };
 const connectionMeta: Record<ConnectionStatus, [string, BadgeTone]> = {
   connected: ["Connected", "green"],
