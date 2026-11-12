@@ -16,14 +16,14 @@ export function RangeFilter({ range }: { range: ResolvedRange }) {
     startTransition(() => router.replace(`${pathname}?${new URLSearchParams(params)}`, { scroll: false }));
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 transition-opacity", pending && "opacity-60")}>
-      <div className="flex flex-wrap rounded-lg border border-zinc-200 bg-white p-0.5">
+    <div className={cn("flex min-w-0 max-w-full flex-wrap items-center gap-2 transition-opacity", pending && "opacity-60")}>
+      <div className="-mx-1 flex max-w-full overflow-x-auto rounded-lg border border-zinc-200 bg-white p-0.5 [scrollbar-width:none] sm:mx-0">
         {RANGE_OPTIONS.map((o) => (
           <button
             key={o.id}
             type="button"
             onClick={() => go(o.id === "custom" ? { range: "custom", from: range.from, to: range.to } : { range: o.id })}
-            className={cn("rounded-md px-2.5 py-1 text-xs font-medium", range.id === o.id ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100")}
+            className={cn("shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium", range.id === o.id ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100")}
           >
             {o.label}
           </button>

@@ -168,7 +168,7 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
           <button type="button" onClick={() => setOpen(true)} className="rounded p-1.5 text-zinc-600 hover:bg-zinc-100" aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-semibold">{APP_NAME}</span>
+          <Link href={portal === "creator" ? "/dashboard" : "/admin"} aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-6 w-auto" /></Link>
           {portal === "admin" && <Badge tone="red">Admin</Badge>}
           {user.storefrontPath && (
             <Link href={user.storefrontPath} className="ml-auto text-xs font-medium text-violet-700">View storefront</Link>
