@@ -36,14 +36,17 @@ export const KEYWORD_MAX_LENGTH = 30;
 
 export const normalizeKeyword = (k: string) => k.trim().toUpperCase().replace(/\s+/g, " ");
 
+// What triggers a campaign, for lists: its keywords, or "Any comment".
+export const triggerLabels = (rule: MatchRule, keywords: string[]) => (rule === "any" ? ["Any comment"] : keywords);
+
 export function validateCampaign(c: CampaignInput): string | null {
   if (!c.name.trim()) return "Give your campaign a name.";
   if (c.name.length > 80) return "Campaign name must be 80 characters or fewer.";
   if (!c.mediaId) return "Pick the post or Reel this campaign watches.";
-  if (c.keywords.length === 0) return "Add at least one keyword.";
+  if (c.matchRule !== "any" && c.keywords.length === 0) return "Add at least one keyword, or choose \"Any comment\".";
   if (c.keywords.length > KEYWORDS_MAX) return `Up to ${KEYWORDS_MAX} keywords per campaign.`;
   if (c.keywords.some((k) => !k || k.length > KEYWORD_MAX_LENGTH)) return `Keywords must be 1–${KEYWORD_MAX_LENGTH} characters.`;
-  if (!["contains", "exact", "starts_with"].includes(c.matchRule)) return "Pick a matching rule.";
+  if (!["contains", "exact", "starts_with", "any"].includes(c.matchRule)) return "Pick a matching rule.";
   if (!c.message.trim()) return "Write the DM message.";
   if (c.message.length > MESSAGE_MAX) return `Message must be ${MESSAGE_MAX} characters or fewer.`;
   if (c.cta.length > CTA_MAX) return `Button text must be ${CTA_MAX} characters or fewer.`;

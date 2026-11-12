@@ -33,7 +33,7 @@ export async function getDaily(range: ResolvedRange) {
 export async function getCampaignTable(creatorId: string, range: ResolvedRange) {
   const supabase = await createClient();
   const [{ data }, statsFor] = await Promise.all([
-    supabase.from("campaigns").select("id, name, active, keywords").eq("creator_id", creatorId)
+    supabase.from("campaigns").select("id, name, active, keywords, match_rule").eq("creator_id", creatorId)
       .order("active", { ascending: false }).order("created_at", { ascending: false }),
     getCampaignStats(undefined, range),
   ]);

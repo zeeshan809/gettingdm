@@ -66,6 +66,8 @@ export function CampaignForm({
 
   const selected = media.find((m) => m.id === form.mediaId);
   const storefrontUrl = `https://${APP_DOMAIN}/${username}?campaign=${campaignId ?? "…"}`;
+  const anyComment = form.matchRule === "any";
+  const needsKeyword = !anyComment && form.keywords.length === 0;
   const matched = matchKeyword(testComment, form.keywords, form.matchRule);
   const preview = form.message.replaceAll("{first_name}", "Priya").replaceAll("{username}", "priya.learns");
 
@@ -146,8 +148,23 @@ export function CampaignForm({
         </Card>
 
         <Card>
-          <CardHeader title="2. Trigger keywords" description="Matching is case-insensitive." />
+          <CardHeader title="2. Which comments get a DM" description="Reply to every comment, or only to comments with your keyword. Matching is case-insensitive." />
           <div className="space-y-4 p-5">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {MATCH_RULES.map((r) => (
+                <label key={r.id} className={cn("cursor-pointer rounded-lg border p-3 text-sm", form.matchRule === r.id ? "border-violet-600 bg-violet-50" : "border-zinc-200")}>
+                  <input type="radio" name="rule" className="sr-only" checked={form.matchRule === r.id} onChange={() => set("matchRule", r.id)} />
+                  <span className="font-medium">{r.label}</span>
+                  <span className="mt-0.5 block text-xs text-zinc-500">{r.help}</span>
+                </label>
+              ))}
+            </div>
+            {anyComment ? (
+              <p className="flex items-start gap-1.5 rounded-lg bg-violet-50 px-3 py-2.5 text-sm text-violet-900">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                Everyone who comments on this post gets your DM, whatever they write. No keywords needed.
+              </p>
+            ) : (
             <div>
               <p className="mb-1.5 text-sm font-medium text-zinc-800">Keywords</p>
               <div className="flex gap-2">
@@ -172,21 +189,13 @@ export function CampaignForm({
                 {form.keywords.length >= KEYWORDS_MAX && <p className="text-xs text-zinc-400">Maximum {KEYWORDS_MAX} keywords.</p>}
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {MATCH_RULES.map((r) => (
-                <label key={r.id} className={cn("cursor-pointer rounded-lg border p-3 text-sm", form.matchRule === r.id ? "border-violet-600 bg-violet-50" : "border-zinc-200")}>
-                  <input type="radio" name="rule" className="sr-only" checked={form.matchRule === r.id} onChange={() => set("matchRule", r.id)} />
-                  <span className="font-medium">{r.label}</span>
-                  <span className="mt-0.5 block text-xs text-zinc-500">{r.help}</span>
-                </label>
-              ))}
-            </div>
+            )}
             <div className="rounded-lg bg-zinc-50 p-3">
               <Field label="Test a comment">
                 <Input value={testComment} onChange={(e) => setTestComment(e.target.value)} />
               </Field>
               <p className={cn("mt-2 text-xs font-medium", matched ? "text-emerald-700" : "text-zinc-500")}>
-                {matched ? `✓ Matches “${matched}” — a DM would be sent` : "✗ No match — this comment would be skipped"}
+                {matched ? (anyComment ? "✓ Every comment gets a DM, so this one would too" : `✓ Matches “${matched}” — a DM would be sent`) : anyComment ? "✗ Empty comments are skipped" : "✗ No match — this comment would be skipped"}
               </p>
             </div>
             <p className="flex items-start gap-1.5 text-xs text-zinc-500">
@@ -243,10 +252,10 @@ export function CampaignForm({
               </div>
               <Toggle checked={form.active} onChange={(v) => set("active", v)} label="Campaign active" />
             </div>
-            <Button type="submit" className="mt-5 w-full" disabled={saving || form.keywords.length === 0 || !form.mediaId}>
+            <Button type="submit" className="mt-5 w-full" disabled={saving || needsKeyword || !form.mediaId}>
               {saving ? "Saving…" : campaignId ? "Save changes" : "Create campaign"}
             </Button>
-            {form.keywords.length === 0 && <p className="mt-2 text-center text-xs text-zinc-400">Add at least one keyword.</p>}
+            {needsKeyword && <p className="mt-2 text-center text-xs text-zinc-400">Add at least one keyword, or choose “Any comment”.</p>}
           </Card>
         </div>
       </div>

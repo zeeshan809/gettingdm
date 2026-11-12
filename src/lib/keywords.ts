@@ -1,8 +1,12 @@
-export type MatchRule = "contains" | "exact" | "starts_with";
+export type MatchRule = "contains" | "exact" | "starts_with" | "any";
+
+// Recorded as the matched keyword when an "any comment" campaign replies.
+export const ANY_COMMENT = "ANY COMMENT";
 
 // Case-insensitive keyword matching (PRD 6.2). Pure so the backend can reuse it.
 export function matchKeyword(comment: string, keywords: string[], rule: MatchRule): string | null {
   const text = comment.trim().toLowerCase();
+  if (rule === "any") return text ? ANY_COMMENT : null;
   const words = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   for (const raw of keywords) {
     const kw = raw.trim().toLowerCase();
@@ -18,4 +22,5 @@ export const MATCH_RULES: { id: MatchRule; label: string; help: string }[] = [
   { id: "contains", label: "Contains keyword", help: "“send PYTHON pls” matches PYTHON" },
   { id: "exact", label: "Exact match", help: "Only “python” (emoji and punctuation ignored)" },
   { id: "starts_with", label: "Starts with keyword", help: "“python please” matches, “pls python” doesn't" },
+  { id: "any", label: "Any comment", help: "Everyone who comments gets the DM, no keyword needed" },
 ];

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Badge, Card, EmptyState, LinkButton, MediaThumb, PageHeader } from "@/components/ui";
 import { getCurrentCreator } from "@/lib/auth";
+import { triggerLabels } from "@/lib/campaigns";
 import { getCampaignStats } from "@/lib/campaigns-server";
 import { createClient } from "@/lib/supabase/server";
 import { date, num } from "@/lib/format";
@@ -14,7 +15,7 @@ export default async function CampaignsPage() {
   const [{ data: campaigns }, statsFor] = await Promise.all([
     supabase
       .from("campaigns")
-      .select("id, name, active, keywords, link_title, created_at, ig_media_id, media_type, media_caption, media_thumbnail_url")
+      .select("id, name, active, keywords, match_rule, link_title, created_at, ig_media_id, media_type, media_caption, media_thumbnail_url")
       .eq("creator_id", creator.id)
       .order("active", { ascending: false })
       .order("created_at", { ascending: false }),
@@ -25,7 +26,7 @@ export default async function CampaignsPage() {
     <>
       <PageHeader
         title="Campaigns"
-        description="Each campaign watches one post or Reel for keywords and DMs the commenter."
+        description="Each campaign watches one post or Reel and DMs people who comment your keyword, or everyone who comments."
         actions={<LinkButton href="/campaigns/new"><Plus className="h-4 w-4" /> New campaign</LinkButton>}
       />
 
@@ -53,7 +54,7 @@ export default async function CampaignsPage() {
                     </div>
                     <p className="mt-0.5 truncate text-xs text-zinc-500">{c.media_caption}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {c.keywords.map((k) => <Badge key={k} tone="violet" className="font-mono">{k}</Badge>)}
+                      {triggerLabels(c.match_rule, c.keywords).map((k) => <Badge key={k} tone="violet" className="font-mono">{k}</Badge>)}
                     </div>
                     <dl className="mt-3 grid grid-cols-4 gap-2 text-xs">
                       <div><dt className="text-zinc-400">Comments</dt><dd className="font-semibold">{num(s.comments)}</dd></div>

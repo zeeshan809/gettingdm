@@ -19,7 +19,8 @@ function dbErrorMessage(error: PostgrestError) {
 function toRow(input: CampaignInput) {
   return {
     name: input.name.trim(),
-    keywords: [...new Set(input.keywords.map(normalizeKeyword))],
+    // "Any comment" campaigns ignore keywords entirely.
+    keywords: input.matchRule === "any" ? [] : [...new Set(input.keywords.map(normalizeKeyword))],
     match_rule: input.matchRule,
     message: input.message.trim(),
     cta_label: input.cta.trim() || "Open the link",

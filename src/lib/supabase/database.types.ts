@@ -917,7 +917,7 @@ export type Database = {
         | "revoked"
         | "error"
         | "disconnected"
-      match_rule: "contains" | "exact" | "starts_with"
+      match_rule: "contains" | "exact" | "starts_with" | "any"
       plan_id: "creator" | "creator_plus"
       subscription_status:
         | "trial"
@@ -1082,7 +1082,7 @@ export const Constants = {
         "error",
         "disconnected",
       ],
-      match_rule: ["contains", "exact", "starts_with"],
+      match_rule: ["contains", "exact", "starts_with", "any"],
       plan_id: ["creator", "creator_plus"],
       subscription_status: [
         "trial",

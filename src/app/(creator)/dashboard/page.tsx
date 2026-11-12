@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { TrendChart } from "@/components/charts";
 import { RangeFilter } from "@/components/range-filter";
 import { AutomationBadge, Card, CardHeader, Callout, EmptyState, LinkButton, cn } from "@/components/ui";
+import { triggerLabels } from "@/lib/campaigns";
 import { getCampaignTable, getDaily, getRecentActivity, sumRows } from "@/lib/analytics-server";
 import { getCurrentCreator } from "@/lib/auth";
 import { resolveRange } from "@/lib/date-range";
@@ -155,7 +156,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                     <span className={cn("h-2 w-2 shrink-0 rounded-full", c.active ? "bg-emerald-500" : "bg-zinc-300")} aria-label={c.active ? "Active" : "Paused"} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-zinc-900">{c.name}</p>
-                      <p className="truncate font-mono text-xs text-zinc-500">{c.keywords.join(", ")}</p>
+                      <p className="truncate font-mono text-xs text-zinc-500">{triggerLabels(c.match_rule, c.keywords).join(", ")}</p>
                     </div>
                     <div className="grid shrink-0 grid-cols-2 gap-4 text-right sm:grid-cols-3">
                       <Metric label="DMs" value={num(c.stats.sent)} />
