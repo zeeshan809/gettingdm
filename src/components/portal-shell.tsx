@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BarChart3, Bell, CreditCard, FileClock, Gauge, Instagram, LayoutDashboard, LifeBuoy,
   LogOut, Megaphone, Menu, Receipt, Server, Settings, ShieldCheck, Store, Users, Wallet, X, Zap,
@@ -84,6 +84,24 @@ function isActive(pathname: string, href: string) {
 export function PortalShell({ portal, user, children }: { portal: "creator" | "admin"; user: ShellUser; children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  // Desktop only: hide the fixed sidebar. Remembered per browser.
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("gdm-sidebar-collapsed") === "1") setCollapsed(true);
+    } catch {}
+  }, []);
+
+  const toggleMenu = () => {
+    if (window.matchMedia("(min-width: 1280px)").matches) {
+      const next = !collapsed;
+      setCollapsed(next);
+      try { localStorage.setItem("gdm-sidebar-collapsed", next ? "1" : "0"); } catch {}
+    } else {
+      setOpen(true);
+    }
+  };
   const nav = portal === "creator" ? creatorNav : adminNav;
 
   const sidebar = (
@@ -149,8 +167,8 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
 
   return (
     <ToastProvider>
-      <div className="min-h-screen xl:pl-64">
-        <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white xl:block">{sidebar}</aside>
+      <div className={cn("min-h-screen transition-[padding] duration-200", !collapsed && "xl:pl-64")}>
+        <aside className={cn("fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-zinc-200 bg-white", !collapsed && "xl:block")}>{sidebar}</aside>
 
         {open && (
           <div className="fixed inset-0 z-40 xl:hidden">
@@ -164,11 +182,11 @@ export function PortalShell({ portal, user, children }: { portal: "creator" | "a
           </div>
         )}
 
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur xl:hidden">
-          <button type="button" onClick={() => setOpen(true)} className="rounded p-1.5 text-zinc-600 hover:bg-zinc-100" aria-label="Open menu">
+        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+          <button type="button" onClick={toggleMenu} className="-ml-1.5 rounded-lg p-1.5 text-zinc-600 hover:bg-zinc-100" aria-label={collapsed ? "Show menu" : "Toggle menu"}>
             <Menu className="h-5 w-5" />
           </button>
-          <Link href={portal === "creator" ? "/dashboard" : "/admin"} aria-label={APP_NAME} className="inline-flex items-center"><Logo className="h-6 w-auto" /></Link>
+          <Link href={portal === "creator" ? "/dashboard" : "/admin"} aria-label={APP_NAME} className={cn("inline-flex items-center", !collapsed && "xl:hidden")}><Logo className="h-6 w-auto" /></Link>
           {portal === "admin" && <Badge tone="red">Admin</Badge>}
           {user.storefrontPath && (
             <Link href={user.storefrontPath} className="ml-auto text-xs font-medium text-violet-700">View storefront</Link>
