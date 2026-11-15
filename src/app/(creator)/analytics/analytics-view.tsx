@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BarList, Donut, TrendChart } from "@/components/charts-lazy";
 import { Tabs } from "@/components/interactive";
-import { Badge, Callout, Card, CardHeader, EmptyState, StatCard, Table, Td, Th } from "@/components/ui";
+import { Badge, Callout, Card, CardHeader, EmptyState, LinkButton, StatCard, Table, Td, Th } from "@/components/ui";
 import type { DailyRow, LinkStat } from "@/lib/analytics-server";
 import type { CampaignStats } from "@/lib/campaigns";
 import { num, pct } from "@/lib/format";
@@ -17,7 +17,11 @@ export function AnalyticsView({
   campaigns,
   keywords,
   links,
+  advanced,
 }: {
+  // Creator Plus (and the free trial): storefront and conversion analytics too.
+  // Creator: automation analytics only.
+  advanced: boolean;
   rows: DailyRow[];
   campaigns: { id: string; name: string; active: boolean; stats: CampaignStats }[];
   keywords: { keyword: string; matches: number; sent: number }[];
@@ -40,7 +44,16 @@ export function AnalyticsView({
   return (
     <>
       <div className="mb-6">
-        <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "automation", label: "Automation" }, { id: "storefront", label: "Storefront" }, { id: "conversions", label: "Conversions" }]} />
+        {advanced ? (
+          <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "automation", label: "Automation" }, { id: "storefront", label: "Storefront" }, { id: "conversions", label: "Conversions" }]} />
+        ) : (
+          <Callout
+            title="Basic analytics"
+            action={<LinkButton href="/billing" size="sm">Upgrade to Creator Plus</LinkButton>}
+          >
+            Your plan includes comment and DM analytics. Storefront visits, link performance and conversion analytics are part of Creator Plus.
+          </Callout>
+        )}
       </div>
 
       {tab === "automation" && (
@@ -93,7 +106,7 @@ export function AnalyticsView({
         </div>
       )}
 
-      {tab === "storefront" && (
+      {advanced && tab === "storefront" && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             <StatCard label="Storefront visits" value={num(t.visits)} />
@@ -135,7 +148,7 @@ export function AnalyticsView({
         </div>
       )}
 
-      {tab === "conversions" && (
+      {advanced && tab === "conversions" && (
         <div className="space-y-6">
           <Callout tone="blue" title="Clicks are not purchases">
             Only purchases confirmed by a connected checkout or payment provider count as verified. Purchase tracking is coming soon.
