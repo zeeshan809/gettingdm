@@ -4,10 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button, Field, FormError, Input } from "@/components/ui";
-import { APP_DOMAIN, RESERVED_USERNAMES, TRIAL_DAYS } from "@/lib/config";
+import { APP_DOMAIN, CREATOR_PLUS_ENABLED, RESERVED_USERNAMES, TRIAL_DAYS } from "@/lib/config";
 import { createClient } from "@/lib/supabase/client";
 
 const USERNAME_RE = /^[a-z0-9_.]{3,30}$/;
+
+// While the storefront (Creator Plus) is off, nobody picks a username: one is made from
+// the email, e.g. "priya.k_4821". It's only used internally (DM links, admin).
+function autoUsername(email: string) {
+  const base = (email.split("@")[0] ?? "").toLowerCase().replace(/[^a-z0-9_.]/g, "").replace(/^[._]+|[._]+$/g, "").slice(0, 20);
+  return `${base.length >= 3 ? base : "creator"}_${Math.floor(1000 + Math.random() * 9000)}`;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -45,18 +52,34 @@ export default function RegisterPage() {
     setError("");
 
     const supabase = createClient();
-    const { data: available } = await supabase.rpc("username_available", { u: clean });
-    if (!available) {
-      setTaken(true);
-      setBusy(false);
-      return;
+    let chosen = clean;
+    if (CREATOR_PLUS_ENABLED) {
+      const { data: available } = await supabase.rpc("username_available", { u: clean });
+      if (!available) {
+        setTaken(true);
+        setBusy(false);
+        return;
+      }
+    } else {
+      chosen = "";
+      for (let i = 0; i < 5 && !chosen; i++) {
+        const candidate = autoUsername(email);
+        if (RESERVED_USERNAMES.includes(candidate)) continue;
+        const { data: available } = await supabase.rpc("username_available", { u: candidate });
+        if (available) chosen = candidate;
+      }
+      if (!chosen) {
+        setError("Couldn't create your account. Please try again.");
+        setBusy(false);
+        return;
+      }
     }
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password: String(form.get("password")),
       options: {
-        data: { full_name: String(form.get("full_name")).trim(), username: clean },
+        data: { full_name: String(form.get("full_name")).trim(), username: chosen },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
       },
     });
@@ -89,9 +112,11 @@ export default function RegisterPage() {
         <Field label="Full name">
           <Input name="full_name" required maxLength={80} autoComplete="name" placeholder="Zeeshan Hussain" />
         </Field>
-        <Field label="Storefront username" help={usernameHelp}>
-          <Input required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="yourname" aria-invalid={reserved || taken} />
-        </Field>
+        {CREATOR_PLUS_ENABLED && (
+          <Field label="Storefront username" help={usernameHelp}>
+            <Input required value={username} onChange={(e) => setUsername(e.target.value)} placeholder="yourname" aria-invalid={reserved || taken} />
+          </Field>
+        )}
         <Field label="Email">
           <Input name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
         </Field>
@@ -105,7 +130,7 @@ export default function RegisterPage() {
             <a href="/privacy" target="_blank" className="text-violet-700 underline">Privacy Policy</a>.
           </span>
         </label>
-        <Button type="submit" className="w-full" disabled={!valid || taken || busy}>{busy ? "Creating account…" : "Create account"}</Button>
+        <Button type="submit" className="w-full" disabled={(CREATOR_PLUS_ENABLED && (!valid || taken)) || busy}>{busy ? "Creating account…" : "Create account"}</Button>
       </form>
       <p className="mt-6 text-center text-sm text-zinc-500">
         Already have an account? <Link href="/login" className="font-medium text-violet-700 hover:underline">Log in</Link>
