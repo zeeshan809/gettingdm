@@ -1,4 +1,4 @@
-import { APP_DOMAIN, type PlanId } from "./config";
+import { APP_DOMAIN, CREATOR_PLUS_ENABLED, type PlanId } from "./config";
 
 // Single source of truth for what each plan unlocks.
 // Free trial: everything. Creator (Rs 99): DM automation only.
@@ -10,7 +10,7 @@ type Sub = { plan: PlanId | string; status: string } | null | undefined;
 const ENDED = ["cancelled", "expired", "suspended"];
 
 export function hasStorefront(sub: Sub) {
-  if (!sub) return false;
+  if (!CREATOR_PLUS_ENABLED || !sub) return false;
   if (sub.status === "trial") return true;
   return sub.plan === "creator_plus" && !ENDED.includes(sub.status);
 }

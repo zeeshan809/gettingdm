@@ -6,6 +6,7 @@ import { Tabs } from "@/components/interactive";
 import { Badge, Callout, Card, CardHeader, EmptyState, LinkButton, StatCard, Table, Td, Th } from "@/components/ui";
 import type { DailyRow, LinkStat } from "@/lib/analytics-server";
 import type { CampaignStats } from "@/lib/campaigns";
+import { CREATOR_PLUS_ENABLED } from "@/lib/config";
 import { num, pct } from "@/lib/format";
 
 type Tab = "automation" | "storefront" | "conversions";
@@ -46,14 +47,14 @@ export function AnalyticsView({
       <div className="mb-6">
         {advanced ? (
           <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "automation", label: "Automation" }, { id: "storefront", label: "Storefront" }, { id: "conversions", label: "Conversions" }]} />
-        ) : (
+        ) : CREATOR_PLUS_ENABLED ? (
           <Callout
             title="Basic analytics"
             action={<LinkButton href="/billing" size="sm">Upgrade to Creator Plus</LinkButton>}
           >
             Your plan includes comment and DM analytics. Storefront visits, link performance and conversion analytics are part of Creator Plus.
           </Callout>
-        )}
+        ) : null}
       </div>
 
       {tab === "automation" && (

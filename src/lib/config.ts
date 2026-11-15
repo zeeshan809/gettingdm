@@ -11,6 +11,10 @@ export const BUSINESS_ADDRESS = "";
 
 export const TRIAL_DAYS = 30;
 
+// Creator Plus (storefront, featured links, advanced analytics) is switched off while
+// the app goes through Meta App Review. Set to true to bring it all back; nothing is deleted.
+export const CREATOR_PLUS_ENABLED = false;
+
 export type PlanId = "creator" | "creator_plus";
 
 // Only list a feature once it actually works. `soon` marks roadmap items (shown as "Coming soon").
@@ -30,7 +34,7 @@ const CREATOR_FEATURES: PlanFeature[] = [
   { label: "Support", value: "Priority" },
 ];
 
-export const PLANS: {
+const ALL_PLANS: {
   id: PlanId;
   name: string;
   price: number;
@@ -58,6 +62,9 @@ export const PLANS: {
     ],
   },
 ];
+
+// The plans people can see and buy.
+export const PLANS = ALL_PLANS.filter((p) => CREATOR_PLUS_ENABLED || p.id !== "creator_plus");
 
 // Usernames that would collide with app routes.
 export const RESERVED_USERNAMES = [

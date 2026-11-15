@@ -24,7 +24,7 @@ export default async function NewCampaignPage() {
         igHandle={ig.handle}
         username={creator.username}
         storefront={hasStorefront(creator.subscription)}
-        mediaInUse={(active ?? []).map((c) => c.ig_media_id)}
+        mediaInUse={(active ?? []).flatMap((c) => c.ig_media_id ?? [])}
       />
     </>
   );

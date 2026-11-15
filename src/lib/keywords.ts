@@ -18,6 +18,10 @@ export function matchKeyword(comment: string, keywords: string[], rule: MatchRul
   return null;
 }
 
+// Excluded words always use "contains": a comment with any of them never gets a DM.
+export const hasExcludedWord = (comment: string, excluded: string[]) =>
+  !!excluded.length && matchKeyword(comment, excluded, "contains") !== null;
+
 export const MATCH_RULES: { id: MatchRule; label: string; help: string }[] = [
   { id: "contains", label: "Contains keyword", help: "“send PYTHON pls” matches PYTHON" },
   { id: "exact", label: "Exact match", help: "Only “python” (emoji and punctuation ignored)" },

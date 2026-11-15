@@ -15,7 +15,7 @@ export default async function CampaignsPage() {
   const [{ data: campaigns }, statsFor] = await Promise.all([
     supabase
       .from("campaigns")
-      .select("id, name, active, keywords, match_rule, link_title, created_at, ig_media_id, media_type, media_caption, media_thumbnail_url")
+      .select("id, name, active, keywords, match_rule, link_title, created_at, ig_media_id, post_scope, media_type, media_caption, media_thumbnail_url")
       .eq("creator_id", creator.id)
       .order("active", { ascending: false })
       .order("created_at", { ascending: false }),
@@ -26,7 +26,7 @@ export default async function CampaignsPage() {
     <>
       <PageHeader
         title="Campaigns"
-        description="Each campaign watches one post or Reel and DMs people who comment your keyword, or everyone who comments."
+        description="Each campaign watches a post or Reel (or all of them) and DMs people who comment your keyword, or everyone who comments."
         actions={<LinkButton href="/campaigns/new"><Plus className="h-4 w-4" /> New campaign</LinkButton>}
       />
 
@@ -46,13 +46,19 @@ export default async function CampaignsPage() {
             return (
               <Link key={c.id} href={`/campaigns/${c.id}`}>
                 <Card className="flex gap-4 p-4 transition-shadow hover:shadow-md">
-                  <MediaThumb id={c.ig_media_id} type={c.media_type === "Post" ? "Post" : "Reel"} thumbnailUrl={c.media_thumbnail_url} size={56} />
+                  {c.ig_media_id ? (
+                    <MediaThumb id={c.ig_media_id} type={c.media_type === "Post" ? "Post" : "Reel"} thumbnailUrl={c.media_thumbnail_url} size={56} />
+                  ) : (
+                    <span className="flex h-[70px] w-14 shrink-0 items-center justify-center rounded-md bg-violet-100 px-1 text-center text-[10px] font-semibold leading-tight text-violet-700">
+                      {c.post_scope === "any" ? "Any post" : "Next post"}
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-zinc-900">{c.name}</p>
                       {c.active ? <Badge tone="green">Active</Badge> : <Badge>Paused</Badge>}
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">{c.media_caption}</p>
+                    <p className="mt-0.5 truncate text-xs text-zinc-500">{c.media_caption ?? (c.post_scope === "any" ? "Every post and Reel" : "Waiting for your next post or Reel")}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {triggerLabels(c.match_rule, c.keywords).map((k) => <Badge key={k} tone="violet" className="font-mono">{k}</Badge>)}
                     </div>
@@ -62,7 +68,7 @@ export default async function CampaignsPage() {
                       <div><dt className="text-zinc-400">Delivery</dt><dd className="font-semibold">{s.eligible ? `${delivery.toFixed(0)}%` : "—"}</dd></div>
                       <div><dt className="text-zinc-400">Clicks</dt><dd className="font-semibold">{num(s.clicks)}</dd></div>
                     </dl>
-                    <p className="mt-3 text-xs text-zinc-400">4th link: <span className="text-zinc-600">{c.link_title}</span> · Created {date(c.created_at)}</p>
+                    <p className="mt-3 text-xs text-zinc-400">Link: <span className="text-zinc-600">{c.link_title}</span> · Created {date(c.created_at)}</p>
                   </div>
                 </Card>
               </Link>

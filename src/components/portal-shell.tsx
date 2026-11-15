@@ -7,7 +7,7 @@ import {
   BarChart3, Bell, CreditCard, FileClock, Gauge, Instagram, LayoutDashboard, LifeBuoy,
   LogOut, Megaphone, Menu, Receipt, Server, Settings, ShieldCheck, Store, Users, Wallet, X, Zap,
 } from "lucide-react";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, CREATOR_PLUS_ENABLED } from "@/lib/config";
 import { Avatar, Badge, cn } from "./ui";
 import { Logo } from "./logo";
 import { ToastProvider } from "./interactive";
@@ -28,7 +28,7 @@ const creatorNav: { title?: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/campaigns", label: "Campaigns", icon: Zap },
-      { href: "/storefront", label: "Storefront", icon: Store },
+      ...(CREATOR_PLUS_ENABLED ? [{ href: "/storefront", label: "Storefront", icon: Store }] : []),
       { href: "/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },

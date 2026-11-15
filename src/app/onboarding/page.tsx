@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Instagram, Link2, Zap } from "lucide-react";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, CREATOR_PLUS_ENABLED } from "@/lib/config";
 import { Button, buttonClass, Callout, Card, cn, Field, FormError, Input, LinkButton } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 
-const steps = [
+const allSteps = [
   { title: "Connect Instagram", icon: Instagram },
   { title: "Add your three featured links", icon: Link2 },
   { title: "Create your first campaign", icon: Zap },
 ];
+// Featured links belong to the storefront (Creator Plus); skip that step while it's off.
+const steps = CREATOR_PLUS_ENABLED ? allSteps : allSteps.filter((_, i) => i !== 1);
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  // Position in the progress bar (step 1 is hidden while Creator Plus is off).
+  const pos = CREATOR_PLUS_ENABLED || step === 0 ? step : step - 1;
   const [handle, setHandle] = useState<string | null>(null);
   const [connectError, setConnectError] = useState("");
 
@@ -49,6 +53,14 @@ export default function OnboardingPage() {
   }
 
   async function next() {
+    if (step === 0 && !CREATOR_PLUS_ENABLED) {
+      // No featured-links step: mark onboarding done and go straight to the last step.
+      setBusy(true);
+      await saveLinks();
+      setBusy(false);
+      setStep(2);
+      return;
+    }
     if (step === 1) {
       if (links.some((l) => l.url.trim() && !/^https?:\/\//i.test(l.url.trim()))) {
         setError("Links must start with https://");
@@ -72,8 +84,8 @@ export default function OnboardingPage() {
       <ol className="mt-8 flex gap-2">
         {steps.map((s, i) => (
           <li key={s.title} className="flex-1">
-            <div className={cn("h-1.5 rounded-full", i <= step ? "bg-violet-600" : "bg-zinc-200")} />
-            <p className={cn("mt-2 text-xs font-medium", i === step ? "text-violet-700" : "text-zinc-500")}>{i + 1}. {s.title}</p>
+            <div className={cn("h-1.5 rounded-full", i <= pos ? "bg-violet-600" : "bg-zinc-200")} />
+            <p className={cn("mt-2 text-xs font-medium", i === pos ? "text-violet-700" : "text-zinc-500")}>{i + 1}. {s.title}</p>
           </li>
         ))}
       </ol>

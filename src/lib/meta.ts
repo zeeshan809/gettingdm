@@ -172,6 +172,11 @@ export async function sendLinkButton(
   });
 }
 
+// Public reply under a comment (shown to everyone on the post).
+export async function replyToComment(commentId: string, token: string, message: string) {
+  return graphPost<{ id: string }>(`/${commentId}/replies`, token, { message: message.slice(0, 300) });
+}
+
 // Needs the person's consent, which they give by messaging the account.
 export async function followsAccount(igsid: string, token: string) {
   const res = await graph<{ is_user_follow_business?: boolean }>(`/${igsid}`, { fields: "is_user_follow_business", access_token: token });
@@ -232,6 +237,14 @@ export async function recentMedia(igUserId: string, token: string, limit = 24) {
     access_token: token,
   });
   return res.data;
+}
+
+// One post's details, for "Next post" campaigns.
+export async function mediaById(mediaId: string, token: string) {
+  return graph<GraphMedia>(`/${mediaId}`, {
+    fields: "id,caption,media_type,media_product_type,thumbnail_url,media_url,permalink,timestamp",
+    access_token: token,
+  });
 }
 
 // Meta's signed_request (data-deletion and deauthorize callbacks):

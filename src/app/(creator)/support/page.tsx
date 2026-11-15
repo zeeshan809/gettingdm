@@ -4,14 +4,15 @@ import { getCurrentCreator } from "@/lib/auth";
 import { date } from "@/lib/format";
 import { categoryLabel, ticketRef } from "@/lib/support";
 import { createClient } from "@/lib/supabase/server";
+import { CREATOR_PLUS_ENABLED } from "@/lib/config";
 import { NewTicketButton } from "./new-ticket";
 
 export const metadata = { title: "Support" };
 
 const faqs = [
   { q: "Why didn't someone get a DM?", a: "Instagram only allows one private reply per comment, within 7 days. Comments that don't match your keyword rule, or repeat commenters, are skipped." },
-  { q: "Can I change my featured links without editing campaigns?", a: "Yes. Featured links are global — edit them on the Storefront page and every campaign uses the new version." },
-  { q: "How many campaigns can I run?", a: "As many as you like. Both Creator and Creator Plus include unlimited active campaigns." },
+  ...(CREATOR_PLUS_ENABLED ? [{ q: "Can I change my featured links without editing campaigns?", a: "Yes. Featured links are global — edit them on the Storefront page and every campaign uses the new version." }] : []),
+  { q: "How many campaigns can I run?", a: CREATOR_PLUS_ENABLED ? "As many as you like. Both Creator and Creator Plus include unlimited active campaigns." : "As many as you like. Active campaigns are unlimited." },
 ];
 
 export default async function SupportPage() {
@@ -29,7 +30,7 @@ export default async function SupportPage() {
     <>
       <PageHeader
         title="Support"
-        description={plus ? "Creator Plus: priority support." : "We reply within 24 hours. Creator Plus gets priority."}
+        description={plus ? "Creator Plus: priority support." : CREATOR_PLUS_ENABLED ? "We reply within 24 hours. Creator Plus gets priority." : "We reply within 24 hours."}
         actions={<NewTicketButton />}
       />
 

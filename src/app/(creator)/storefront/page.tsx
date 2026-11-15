@@ -1,13 +1,16 @@
 import { Check, Store } from "lucide-react";
+import { notFound } from "next/navigation";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
 import { getCurrentCreator } from "@/lib/auth";
 import { hasStorefront } from "@/lib/plan";
+import { CREATOR_PLUS_ENABLED } from "@/lib/config";
 import { createClient } from "@/lib/supabase/server";
 import { toStoreLink } from "@/lib/storefront-server";
 import { emptyLink, parseSocials, parseTheme, type CampaignOption, type FeaturedLink } from "@/lib/storefront";
 import { StorefrontEditor } from "./storefront-editor";
 
 export default async function StorefrontPage() {
+  if (!CREATOR_PLUS_ENABLED) notFound();
   const creator = await getCurrentCreator();
   if (!hasStorefront(creator.subscription)) return <StorefrontLocked />;
   const supabase = await createClient();

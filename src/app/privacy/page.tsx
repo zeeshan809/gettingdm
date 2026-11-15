@@ -71,7 +71,10 @@ export default function PrivacyPage() {
       <p>We use these permissions from Meta, and only for the purposes listed:</p>
       <ul>
         <li><strong>instagram_basic</strong>: show your account and your posts when you set up a campaign.</li>
-        <li><strong>instagram_manage_comments</strong>: receive comments on your posts so they can trigger your campaign.</li>
+        <li>
+          <strong>instagram_manage_comments</strong>: receive comments on your posts so they can trigger your campaign, and, if you
+          turn it on, post your chosen public reply under the comment.
+        </li>
         <li>
           <strong>instagram_manage_messages</strong>: send your private reply to a commenter, and, for campaigns with
           &quot;Follow before DM&quot; on, check whether the commenter follows you and see when they reply.

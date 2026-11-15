@@ -1,8 +1,9 @@
 import "server-only";
-import { matchKeyword, type MatchRule } from "./keywords";
+import { hasExcludedWord, matchKeyword, type MatchRule } from "./keywords";
 import { accessToken, markConnectionProblem } from "./instagram";
 import {
-  conversationMessages, followsAccount, MetaError, metaTime, recentConversations, sendLinkButton, sendMessage, sendPrivateReply, type QuickReply,
+  conversationMessages, followsAccount, mediaById, MetaError, metaTime, recentConversations, replyToComment, sendLinkButton, sendMessage,
+  sendPrivateReply, type QuickReply,
 } from "./meta";
 import { dmLinkFor, hasStorefront } from "./plan";
 import { createServiceClient } from "./supabase/server";
@@ -129,13 +130,7 @@ async function handleComment(igUserId: string, v: CommentValue, receivedAt: stri
   if (!account) return;
 
   const db = svc();
-  const { data: campaign } = await db
-    .from("campaigns")
-    .select("id, keywords, match_rule, delay_seconds, created_at")
-    .eq("creator_id", account.creatorId)
-    .eq("ig_media_id", v.media.id)
-    .eq("active", true)
-    .maybeSingle();
+  const campaign = await campaignForMedia(account.creatorId, v.media.id);
   if (!campaign) return;
   if (new Date(receivedAt) < new Date(campaign.created_at)) return; // comment is older than the campaign
 
@@ -160,6 +155,9 @@ async function handleComment(igUserId: string, v: CommentValue, receivedAt: stri
 
   const matched = matchKeyword(v.text ?? "", campaign.keywords, campaign.match_rule as MatchRule);
   if (!matched) return setStatus(row.id, { status: "ineligible", processed_at: nowIso() });
+  if (hasExcludedWord(v.text ?? "", campaign.exclude_keywords)) {
+    return setStatus(row.id, { status: "ineligible", matched_keyword: matched, error: "Contains an excluded word", processed_at: nowIso() });
+  }
 
   if (!account.sub || !LIVE_PLAN.includes(account.sub.status)) {
     return setStatus(row.id, { status: "skipped", matched_keyword: matched, error: "Plan inactive", processed_at: nowIso() });
@@ -187,13 +185,69 @@ async function handleComment(igUserId: string, v: CommentValue, receivedAt: stri
   await deliver(row.id);
 }
 
+const CAMPAIGN_FIELDS = "id, keywords, exclude_keywords, match_rule, delay_seconds, created_at";
+
+// The live campaign for a commented post, most specific first:
+// 1. a campaign on this exact post, 2. a "Next post" campaign (if this post is newer than
+// the campaign, the campaign is locked to it), 3. an "Any post" campaign.
+async function campaignForMedia(creatorId: string, mediaId: string) {
+  const db = svc();
+  const live = () => db.from("campaigns").select(CAMPAIGN_FIELDS).eq("creator_id", creatorId).eq("active", true);
+
+  const { data: specific } = await live().eq("ig_media_id", mediaId).maybeSingle();
+  if (specific) return specific;
+
+  const { data: next } = await live().eq("post_scope", "next").maybeSingle();
+  if (next) {
+    const token = await accessToken(creatorId);
+    const media = token ? await mediaById(mediaId, token).catch(() => null) : null;
+    if (media && metaTime(media.timestamp) >= new Date(next.created_at).getTime()) {
+      const { data: locked } = await db
+        .from("campaigns")
+        .update({
+          post_scope: "specific",
+          ig_media_id: media.id,
+          media_type: media.media_product_type === "REELS" || media.media_type === "VIDEO" ? "Reel" : "Post",
+          media_caption: media.caption?.slice(0, 200) ?? "",
+          media_thumbnail_url: media.thumbnail_url ?? (media.media_type === "VIDEO" ? null : media.media_url ?? null),
+          media_permalink: media.permalink ?? null,
+          media_posted_at: new Date(metaTime(media.timestamp)).toISOString(),
+        })
+        .eq("id", next.id)
+        .eq("post_scope", "next") // only the first comment locks it
+        .select(CAMPAIGN_FIELDS);
+      if (locked?.length) return locked[0];
+      const { data: again } = await live().eq("ig_media_id", mediaId).maybeSingle();
+      if (again) return again;
+    }
+  }
+
+  const { data: anyPost } = await live().eq("post_scope", "any").maybeSingle();
+  return anyPost;
+}
+
+// Optional public reply under the comment, picked at random from the creator's list.
+// It never blocks or fails the DM.
+async function postPublicReply(eventId: string, commentId: string, replies: string[], username: string | null, token: string) {
+  const options = replies.filter((r) => r.trim());
+  if (!options.length) return;
+  const text = personalize(options[Math.floor(Math.random() * options.length)], username);
+  try {
+    await replyToComment(commentId, token, text);
+    await setStatus(eventId, { public_reply_status: "sent" });
+  } catch (e) {
+    console.error("public reply failed", e instanceof Error ? e.message : e);
+    await setStatus(eventId, { public_reply_status: "failed" });
+  }
+}
+
 // Sends the first DM (private reply) for a queued or eligible comment.
 export async function deliver(eventId: string) {
   if (!(await claim(eventId, ["queued", "eligible"]))) return;
   const db = svc();
   const { data: ev } = await db
     .from("comment_events")
-    .select("id, creator_id, campaign_id, ig_comment_id, commenter_ig_id, commenter_username, received_at, attempts, campaigns (message, cta_label, follow_required, active)")
+    .select("id, creator_id, campaign_id, ig_comment_id, commenter_ig_id, commenter_username, received_at, attempts, campaigns (message, cta_label, follow_required, active, public_reply_enabled, public_replies)")
     .eq("id", eventId)
     .single();
   if (!ev || !ev.campaigns) return setStatus(eventId, { status: "skipped", error: "Campaign deleted", processed_at: nowIso() });
@@ -227,6 +281,7 @@ export async function deliver(eventId: string) {
       const res = await privateReplyWithFallback(account.igUserId, token, ev.ig_comment_id, prompt, [{ title: button, payload: `${LINK_PAYLOAD}${ev.id}` }]);
       await setStatus(eventId, { status: "awaiting_follow", commenter_ig_id: res.recipient_id, attempts: 0, error: null, processed_at: nowIso() });
     }
+    if (c.public_reply_enabled) await postPublicReply(eventId, ev.ig_comment_id, c.public_replies, ev.commenter_username, token);
   } catch (e) {
     await handleSendError(eventId, ev.creator_id, ev.attempts, e);
   }

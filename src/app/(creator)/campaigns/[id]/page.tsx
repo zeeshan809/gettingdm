@@ -10,7 +10,7 @@ import { getInstagramMedia } from "@/lib/instagram";
 import { UUID_RE } from "@/lib/storefront";
 import { createClient } from "@/lib/supabase/server";
 import { dateTime, num, pct } from "@/lib/format";
-import type { InstagramMedia } from "@/lib/campaigns";
+import type { InstagramMedia, PostScope } from "@/lib/campaigns";
 import { CampaignActions } from "./campaign-actions";
 
 export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
     supabase.from("campaigns").select("ig_media_id").eq("creator_id", creator.id).eq("active", true).neq("id", id),
     supabase
       .from("comment_events")
-      .select("id, commenter_username, comment_text, status, error, received_at")
+      .select("id, commenter_username, comment_text, status, error, public_reply_status, received_at")
       .eq("campaign_id", id)
       .order("received_at", { ascending: false })
       .limit(50),
@@ -35,7 +35,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const s = statsFor(id);
 
   // Keep the campaign's own post selectable even if it's no longer in the recent list.
-  const ownMedia: InstagramMedia = {
+  const ownMedia: InstagramMedia | null = !c.ig_media_id ? null : {
     id: c.ig_media_id,
     type: c.media_type === "Post" ? "Post" : "Reel",
     caption: c.media_caption ?? "",
@@ -43,7 +43,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
     permalink: c.media_permalink,
     postedAt: c.media_posted_at ?? c.created_at,
   };
-  const media = ig.media.some((m) => m.id === c.ig_media_id) ? ig.media : [ownMedia, ...ig.media];
+  const media = !ownMedia || ig.media.some((m) => m.id === c.ig_media_id) ? ig.media : [ownMedia, ...ig.media];
 
   return (
     <>
@@ -67,7 +67,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         campaignId={c.id}
         initial={{
           name: c.name,
-          mediaId: c.ig_media_id,
+          postScope: c.post_scope as PostScope,
+          mediaId: c.ig_media_id ?? "",
           keywords: c.keywords,
           matchRule: c.match_rule,
           message: c.message,
@@ -76,13 +77,16 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           active: c.active,
           delaySeconds: c.delay_seconds,
           followRequired: c.follow_required,
+          excludeKeywords: c.exclude_keywords,
+          publicReplyEnabled: c.public_reply_enabled,
+          publicReplies: c.public_replies,
         }}
         media={media}
         sampleMedia={ig.sample}
         igHandle={ig.handle}
         username={creator.username}
         storefront={hasStorefront(creator.subscription)}
-        mediaInUse={(active ?? []).map((a) => a.ig_media_id)}
+        mediaInUse={(active ?? []).flatMap((a) => a.ig_media_id ?? [])}
       />
 
       <Card className="mt-6">
@@ -96,7 +100,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 <Td className="font-medium">{a.commenter_username ? `@${a.commenter_username}` : "—"}</Td>
                 <Td>{a.comment_text ? `“${a.comment_text}”` : "—"}</Td>
                 <Td><AutomationBadge status={a.status} /></Td>
-                <Td className="text-zinc-500">{a.error ?? "—"}</Td>
+                <Td className="text-zinc-500">
+                  {[a.error, a.public_reply_status === "sent" ? "Public reply posted" : a.public_reply_status === "failed" ? "Public reply failed" : null].filter(Boolean).join(" · ") || "—"}
+                </Td>
               </tr>
             ))}
             {!log?.length && (

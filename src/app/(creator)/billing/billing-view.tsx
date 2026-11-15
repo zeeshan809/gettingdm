@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Modal, useToast } from "@/components/interactive";
 import { Badge, Button, Callout, Card, CardHeader, cn, EmptyState, PageHeader, Progress, SubscriptionBadge, Table, Td, Th } from "@/components/ui";
-import { PLANS, TRIAL_DAYS, type PlanId } from "@/lib/config";
+import { CREATOR_PLUS_ENABLED, PLANS, TRIAL_DAYS, type PlanId } from "@/lib/config";
 import { date, daysBetween, inr } from "@/lib/format";
 import { hasStorefront } from "@/lib/plan";
 import type { SubscriptionStatus } from "@/lib/mock-data";
@@ -150,13 +150,13 @@ export function BillingView({ sub, payments, activeCampaigns, paymentsReady }: {
           <dl className="space-y-4 p-5 text-sm">
             <div className="flex justify-between"><dt className="text-zinc-500">Active campaigns</dt><dd className="font-medium">{activeCampaigns} <span className="text-zinc-400">/ unlimited</span></dd></div>
             <div className="flex justify-between"><dt className="text-zinc-500">DMs</dt><dd className="font-medium">Unlimited</dd></div>
-            <div className="flex justify-between"><dt className="text-zinc-500">Storefront</dt><dd className="font-medium">{hasStorefront(sub) ? "Included" : "Creator Plus"}</dd></div>
+            {CREATOR_PLUS_ENABLED && <div className="flex justify-between"><dt className="text-zinc-500">Storefront</dt><dd className="font-medium">{hasStorefront(sub) ? "Included" : "Creator Plus"}</dd></div>}
           </dl>
         </Card>
       </div>
 
       <h2 className="mb-3 mt-8 font-semibold text-zinc-900">{paid || sub?.hasMandate ? "Change plan" : "Choose a plan"}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={cn("grid gap-4", PLANS.length > 1 ? "md:grid-cols-2" : "max-w-md")}>
         {PLANS.map((p) => {
           const featured = p.id === "creator_plus";
           const isCurrent = (paid || sub?.hasMandate) && sub?.plan === p.id;

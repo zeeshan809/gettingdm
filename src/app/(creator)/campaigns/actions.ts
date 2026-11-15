@@ -11,7 +11,11 @@ import { UUID_RE } from "@/lib/storefront";
 type Result = { error: string } | { ok: true; id: string };
 
 function dbErrorMessage(error: PostgrestError) {
-  if (error.code === "23505") return "Another active campaign is already watching this post. Pause it first or pick a different post.";
+  if (error.code === "23505") {
+    if (error.message.includes("campaigns_one_active_any")) return "You already have a live \"Any post\" campaign. Pause it first.";
+    if (error.message.includes("campaigns_one_active_next")) return "You already have a live \"Next post\" campaign. Pause it first.";
+    return "Another active campaign is already watching this post. Pause it first or pick a different post.";
+  }
   console.error("campaign write failed", error);
   return "Couldn't save the campaign. Please try again.";
 }
@@ -19,12 +23,16 @@ function dbErrorMessage(error: PostgrestError) {
 function toRow(input: CampaignInput) {
   return {
     name: input.name.trim(),
+    post_scope: input.postScope,
+    exclude_keywords: [...new Set(input.excludeKeywords.map(normalizeKeyword).filter(Boolean))],
+    public_reply_enabled: input.publicReplyEnabled,
+    public_replies: input.publicReplies.map((r) => r.trim()).filter(Boolean),
     // "Any comment" campaigns ignore keywords entirely.
     keywords: input.matchRule === "any" ? [] : [...new Set(input.keywords.map(normalizeKeyword))],
     match_rule: input.matchRule,
     message: input.message.trim(),
     cta_label: input.cta.trim() || "Open the link",
-    link_title: input.link.title.trim(),
+    link_title: input.link.title.trim() || input.name.trim(),
     link_description: input.link.description.trim(),
     link_url: input.link.url.trim(),
     link_button_label: input.link.buttonLabel.trim() || "Open",
@@ -35,8 +43,15 @@ function toRow(input: CampaignInput) {
   };
 }
 
+const NO_MEDIA = {
+  ig_media_id: null, media_type: null, media_caption: null, media_thumbnail_url: null, media_permalink: null, media_posted_at: null,
+};
+
 // Post details come from the creator's own media list, never from the client.
-async function mediaRow(creatorId: string, mediaId: string) {
+// "Any post" and "Next post" campaigns have no post yet.
+async function mediaRow(creatorId: string, input: CampaignInput) {
+  if (input.postScope !== "specific") return NO_MEDIA;
+  const mediaId = input.mediaId;
   const { media } = await getInstagramMedia(creatorId);
   const m = media.find((x) => x.id === mediaId);
   return m && {
@@ -53,7 +68,7 @@ export async function createCampaign(input: CampaignInput): Promise<Result> {
   const error = validateCampaign(input);
   if (error) return { error };
   const creator = await getCurrentCreator();
-  const media = await mediaRow(creator.id, input.mediaId);
+  const media = await mediaRow(creator.id, input);
   if (!media) return { error: "That post isn't available. Pick another one." };
 
   const supabase = await createClient();
@@ -76,11 +91,12 @@ export async function updateCampaign(id: string, input: CampaignInput): Promise<
   const creator = await getCurrentCreator();
   const supabase = await createClient();
 
-  const { data: existing } = await supabase.from("campaigns").select("ig_media_id").eq("id", id).maybeSingle();
+  const { data: existing } = await supabase.from("campaigns").select("ig_media_id, post_scope").eq("id", id).maybeSingle();
   if (!existing) return { error: "Campaign not found." };
 
   // Keep stored post details when the post is unchanged (it may have dropped off the recent list).
-  const media = existing.ig_media_id === input.mediaId ? {} : await mediaRow(creator.id, input.mediaId);
+  const unchanged = input.postScope === "specific" && existing.post_scope === "specific" && existing.ig_media_id === input.mediaId;
+  const media = unchanged ? {} : await mediaRow(creator.id, input);
   if (!media) return { error: "That post isn't available. Pick another one." };
 
   const { error: dbError } = await supabase.from("campaigns").update({ ...toRow(input), ...media }).eq("id", id);

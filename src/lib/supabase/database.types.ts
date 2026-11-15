@@ -109,9 +109,10 @@ export type Database = {
           creator_id: string
           cta_label: string
           delay_seconds: number
+          exclude_keywords: string[]
           follow_required: boolean
           id: string
-          ig_media_id: string
+          ig_media_id: string | null
           keywords: string[]
           link_active: boolean
           link_button_label: string
@@ -126,6 +127,9 @@ export type Database = {
           media_type: string | null
           message: string
           name: string
+          post_scope: string
+          public_replies: string[]
+          public_reply_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -134,9 +138,10 @@ export type Database = {
           creator_id?: string
           cta_label?: string
           delay_seconds?: number
+          exclude_keywords?: string[]
           follow_required?: boolean
           id?: string
-          ig_media_id: string
+          ig_media_id?: string | null
           keywords: string[]
           link_active?: boolean
           link_button_label?: string
@@ -151,6 +156,9 @@ export type Database = {
           media_type?: string | null
           message: string
           name: string
+          post_scope?: string
+          public_replies?: string[]
+          public_reply_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -159,9 +167,10 @@ export type Database = {
           creator_id?: string
           cta_label?: string
           delay_seconds?: number
+          exclude_keywords?: string[]
           follow_required?: boolean
           id?: string
-          ig_media_id?: string
+          ig_media_id?: string | null
           keywords?: string[]
           link_active?: boolean
           link_button_label?: string
@@ -176,6 +185,9 @@ export type Database = {
           media_type?: string | null
           message?: string
           name?: string
+          post_scope?: string
+          public_replies?: string[]
+          public_reply_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -203,6 +215,7 @@ export type Database = {
           matched_keyword: string | null
           next_attempt_at: string | null
           processed_at: string | null
+          public_reply_status: string | null
           received_at: string
           sent_at: string | null
           status: Database["public"]["Enums"]["automation_status"]
@@ -221,6 +234,7 @@ export type Database = {
           matched_keyword?: string | null
           next_attempt_at?: string | null
           processed_at?: string | null
+          public_reply_status?: string | null
           received_at?: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["automation_status"]
@@ -239,6 +253,7 @@ export type Database = {
           matched_keyword?: string | null
           next_attempt_at?: string | null
           processed_at?: string | null
+          public_reply_status?: string | null
           received_at?: string
           sent_at?: string | null
           status?: Database["public"]["Enums"]["automation_status"]
@@ -828,6 +843,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_data_retention: { Args: never; Returns: undefined }
       campaign_stats: {
         Args: { p_campaign_id?: string; p_from?: string; p_to?: string }
         Returns: {

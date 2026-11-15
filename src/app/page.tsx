@@ -3,7 +3,7 @@ import {
   ArrowRight, BarChart3, Check, ChevronDown, Dumbbell, GraduationCap, Link2, Lock, MessageCircle,
   MousePointerClick, Plug, Rocket, Send, ShieldCheck, ShoppingBag, Sparkles, Store, Tag, Zap,
 } from "lucide-react";
-import { APP_DOMAIN, APP_NAME, PLANS, SUPPORT_EMAIL, TRIAL_DAYS } from "@/lib/config";
+import { APP_DOMAIN, APP_NAME, CREATOR_PLUS_ENABLED, PLANS, SUPPORT_EMAIL, TRIAL_DAYS } from "@/lib/config";
 import { Logo } from "@/components/logo";
 import { LandingMenu } from "@/components/landing-menu";
 
@@ -20,8 +20,10 @@ const niches = [
 const featureGrid = [
   { icon: Tag, title: "Keyword triggers", body: "Pick the word your audience comments. Anyone who types it gets your DM." },
   { icon: MessageCircle, title: "Reels and posts", body: "Run a campaign on any Reel or post, and keep each one separate." },
-  { icon: Store, title: "Creator storefront", body: "One clean page with your profile, socials and every link you share.", plus: true },
-  { icon: Link2, title: "Campaign link", body: "A fourth link that changes per Reel, so each audience lands on the right offer.", plus: true },
+  ...(CREATOR_PLUS_ENABLED ? [
+    { icon: Store, title: "Creator storefront", body: "One clean page with your profile, socials and every link you share.", plus: true },
+    { icon: Link2, title: "Campaign link", body: "A fourth link that changes per Reel, so each audience lands on the right offer.", plus: true },
+  ] : []),
   { icon: BarChart3, title: "Funnel analytics", body: "Comments, DMs, visits and clicks by day, by campaign and by link." },
   { icon: ShieldCheck, title: "Official Meta login", body: "Connect with Meta's own login. We never see or store your password." },
 ];
@@ -43,7 +45,7 @@ const useCases = [
   { icon: GraduationCap, who: "Educators", keyword: "NOTES", sends: "Free PDF notes and a link to the full course." },
   { icon: Dumbbell, who: "Fitness coaches", keyword: "PLAN", sends: "A 7-day workout plan and a booking link for coaching." },
   { icon: ShoppingBag, who: "D2C brands", keyword: "PRICE", sends: "The product page with a discount code for commenters." },
-  { icon: Sparkles, who: "Affiliate creators", keyword: "LINK", sends: "Every product from the Reel, on one storefront." },
+  { icon: Sparkles, who: "Affiliate creators", keyword: "LINK", sends: CREATOR_PLUS_ENABLED ? "Every product from the Reel, on one storefront." : "The product link from the Reel, straight in their DMs." },
 ];
 
 const faqs = [
@@ -51,7 +53,7 @@ const faqs = [
   { q: "Do I have to share my Instagram password?", a: "No. You connect through Meta's own login screen. We never see or store your password." },
   { q: "What kind of Instagram account do I need?", a: "A Professional account (Creator or Business). Switching is free and takes a minute in the Instagram app." },
   { q: "Is there a free trial?", a: `Yes. Every plan starts with a ${TRIAL_DAYS}-day free trial, and you can cancel any time.` },
-  { q: "What is the difference between Creator and Creator Plus?", a: "Creator (₹99) covers comment-to-DM automation with unlimited DMs and campaigns. Creator Plus (₹299) adds your own link storefront with three fixed links, a per-campaign link and full analytics." },
+  ...(CREATOR_PLUS_ENABLED ? [{ q: "What is the difference between Creator and Creator Plus?", a: "Creator (₹99) covers comment-to-DM automation with unlimited DMs and campaigns. Creator Plus (₹299) adds your own link storefront with three fixed links, a per-campaign link and full analytics." }] : []),
   { q: "Does it work on other platforms?", a: "Instagram only for now. That is where comment-to-DM works best for creators." },
   { q: "How do payments work?", a: "Payments are processed securely by Razorpay. Prices include applicable taxes." },
 ];
@@ -108,7 +110,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/register" className={primaryCta}>Start {TRIAL_DAYS}-day free trial <ArrowRight className="h-4 w-4" /></Link>
-              <Link href="/zeeshan?campaign=cmp_python" className={secondaryCta}>See a demo storefront</Link>
+              {CREATOR_PLUS_ENABLED ? <Link href="/zeeshan?campaign=cmp_python" className={secondaryCta}>See a demo storefront</Link> : <Link href="#how" className={secondaryCta}>See how it works</Link>}
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-zinc-600">
               <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-violet-600" /> Official Meta API</li>
@@ -146,6 +148,7 @@ export default function LandingPage() {
           points={["Works on Reels and posts", "Personal message with their name", "Runs day and night"]}
           visual={<CommentsVisual />}
         />
+        {CREATOR_PLUS_ENABLED && (
         <FeatureRow
           reverse
           eyebrow="Creator storefront · Creator Plus"
@@ -154,6 +157,7 @@ export default function LandingPage() {
           points={["Your own page at " + APP_DOMAIN + "/you", "A different fourth link per Reel", "Theme and button style you choose"]}
           visual={<StorefrontVisual />}
         />
+        )}
         <FeatureRow
           eyebrow="Analytics"
           title="See exactly which Reel makes you money"
@@ -238,7 +242,7 @@ export default function LandingPage() {
       <section id="pricing" className="scroll-mt-20 bg-white/60 py-24">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
           <SectionHeading eyebrow="Pricing" title="Simple pricing, made for India" subtitle={`Every plan starts with a ${TRIAL_DAYS}-day free trial.`} />
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
+          <div className={PLANS.length > 1 ? "mt-12 grid gap-6 md:grid-cols-2" : "mx-auto mt-12 grid max-w-md gap-6"}>
             {PLANS.map((plan) => {
               const featured = plan.id === "creator_plus";
               return (
@@ -341,7 +345,7 @@ export default function LandingPage() {
             <p className="mt-3 text-sm text-zinc-500">Instagram comment-to-DM automation for Indian creators.</p>
             <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-3 inline-block text-sm font-medium text-violet-700 hover:text-violet-800">{SUPPORT_EMAIL}</a>
           </div>
-          <FooterCol title="Product" links={[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ["Demo storefront", "/zeeshan?campaign=cmp_python"]]} />
+          <FooterCol title="Product" links={[["Features", "#features"], ["How it works", "#how"], ["Pricing", "#pricing"], ...(CREATOR_PLUS_ENABLED ? [["Demo storefront", "/zeeshan?campaign=cmp_python"] as [string, string]] : [])]} />
           <FooterCol title="Account" links={[["Log in", "/login"], ["Start free trial", "/register"], ["Admin", "/admin/login"]]} />
           <FooterCol title="Legal" links={[["Privacy", "/privacy"], ["Terms", "/terms"], ["Data deletion", "/data-deletion"]]} />
         </div>
@@ -459,7 +463,7 @@ function DashboardPreview() {
   const cards = [
     { label: "Comments", value: "1,284", icon: MessageCircle },
     { label: "DMs sent", value: "1,271", icon: Send },
-    { label: "Storefront visits", value: "842", icon: Store },
+    ...(CREATOR_PLUS_ENABLED ? [{ label: "Storefront visits", value: "842", icon: Store }] : [{ label: "Active campaigns", value: "6", icon: Rocket }]),
     { label: "Link clicks", value: "516", icon: MousePointerClick },
   ];
   return (
@@ -543,7 +547,7 @@ function FunnelVisual() {
   const steps = [
     { label: "Comments", value: "1,284", width: "100%" },
     { label: "DMs delivered", value: "1,271", width: "96%" },
-    { label: "Storefront visits", value: "842", width: "66%" },
+    ...(CREATOR_PLUS_ENABLED ? [{ label: "Storefront visits", value: "842", width: "66%" }] : []),
     { label: "Link clicks", value: "516", width: "40%" },
   ];
   return (
