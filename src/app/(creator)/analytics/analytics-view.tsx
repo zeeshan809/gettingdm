@@ -65,7 +65,7 @@ export function AnalyticsView({
             <StatCard label="Ineligible" value={num(t.ineligible)} hint="No keyword match" />
             <StatCard label="DMs delivered" value={num(t.sent)} hint={t.eligible ? `${rate(t.sent, t.eligible)} of eligible` : undefined} />
             <StatCard label="Failed" value={num(t.failed)} />
-            <StatCard label="Skipped" value={num(t.skipped)} hint="Duplicates" />
+            <StatCard label="Skipped" value={num(t.skipped)} hint="Paused or inactive" />
           </div>
           <Card>
             <CardHeader title="Comments and DMs over time" />

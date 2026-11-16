@@ -163,16 +163,9 @@ async function handleComment(igUserId: string, v: CommentValue, receivedAt: stri
     return setStatus(row.id, { status: "skipped", matched_keyword: matched, error: "Plan inactive", processed_at: nowIso() });
   }
 
-  // One DM per person per campaign.
-  let dup = db
-    .from("comment_events")
-    .select("id", { count: "exact", head: true })
-    .eq("campaign_id", campaign.id)
-    .in("status", ["sent", "awaiting_follow", "queued", "eligible"])
-    .neq("id", row.id);
-  dup = v.from.username ? dup.eq("commenter_username", v.from.username) : dup.eq("commenter_ig_id", v.from.id);
-  const { count } = await dup;
-  if (count) return setStatus(row.id, { status: "skipped", matched_keyword: matched, error: "Already sent to this person", processed_at: nowIso() });
+  // Every matching comment gets its own reply, even from someone who commented before
+  // (Instagram allows one private reply per comment). The same comment is never
+  // answered twice: ig_comment_id is unique, so webhook redeliveries are dropped above.
 
   if (campaign.delay_seconds > 0) {
     return setStatus(row.id, {

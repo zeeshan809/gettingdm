@@ -101,7 +101,7 @@ export default function PrivacyPage() {
       </ul>
       <p>
         We store a record of each comment and what we sent (for example &quot;Sent&quot; or &quot;Waiting for follow&quot;) so the
-        creator can see their campaign history and so nobody gets the same message twice.
+        creator can see their campaign history and so no comment is answered twice.
       </p>
 
       <h3>2.4 From storefront visitors</h3>

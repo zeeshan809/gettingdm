@@ -58,7 +58,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         <StatCard label="Ineligible" value={num(s.ineligible)} />
         <StatCard label="DMs sent" value={num(s.sent)} />
         <StatCard label="Failed" value={num(s.failed)} />
-        <StatCard label="Skipped" value={num(s.skipped)} hint="Duplicates & no match" />
+        <StatCard label="Skipped" value={num(s.skipped)} hint="No match or paused" />
         <StatCard label="Link CTR" value={pct(s.sent ? (s.clicks / s.sent) * 100 : 0)} hint={`${num(s.clicks)} ${s.clicks === 1 ? "click" : "clicks"}`} />
       </div>
 

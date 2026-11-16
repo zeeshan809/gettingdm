@@ -80,7 +80,7 @@ export default async function DataDeletionPage({ searchParams }: Props) {
 
       <h2>If you commented on a creator&apos;s post or received a message</h2>
       <p>
-        We keep only what is needed to send the creator&apos;s message and avoid duplicates: the comment, your Instagram username and
+        We keep only what is needed to send the creator&apos;s message and avoid answering a comment twice: the comment, your Instagram username and
         app-specific ID, and the delivery status. We delete these automatically after 12 months. We do not store the text of
         messages you send in the conversation.
       </p>

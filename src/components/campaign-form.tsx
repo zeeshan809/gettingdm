@@ -292,7 +292,7 @@ export function CampaignForm({
                   {excluded ? "✗ Has an excluded word, so no DM" : getsDm ? (anyComment ? "✓ Every comment gets a DM" : `✓ Matches “${matched}”, a DM would be sent`) : anyComment ? "✗ Empty comments are skipped" : "✗ No keyword match, so no DM"}
                 </p>
               </div>
-              <Note>Keywords aren&apos;t case-sensitive. Each person gets one DM per campaign, even if they comment again.</Note>
+              <Note>Keywords aren&apos;t case-sensitive. Every matching comment gets a DM, so someone who comments twice gets it twice.</Note>
             </>
           )}
 
